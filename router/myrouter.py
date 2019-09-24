@@ -63,7 +63,6 @@ class MyRouter:
                         else:
                                 print (fmt.format(route_name, " "," ", " ", " ",  " "))
 
-                        print (bar)
                         
 
     def __cluster_metadata_status(self, cluster_name):
