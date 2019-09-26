@@ -6,11 +6,10 @@ shell = mysqlsh.globals.shell
 
 
 class ProxySQL:
-    def __init__(self, ip, port, user, password=False):
-        self.user = user
-        self.ip = ip
-        self.port = str(port)
-        self.user = user
+    def __init__(self, uri=False):
+        self.user = None
+        self.ip = None
+        self.port = None
         self.members = []
         self.hosts = []
         self.version = None
@@ -23,11 +22,15 @@ class ProxySQL:
         self.max_transaction_behind = 100
         self.monitor_user = "monitor"
         self.monitor_pwd = "monitor"
+        self.uri = uri
 
-        if not password:
+        self.user = shell.parse_uri(self.uri)['user']
+        self.ip = shell.parse_uri(self.uri)['host']
+        self.port = shell.parse_uri(self.uri)['port']
+        if not "password" in shell.parse_uri(self.uri):
             self.__password = shell.prompt('Password: ',{'type': 'password'})
         else:
-            self.__password = password
+            self.__password = shell.parse_uri(self.uri)['password']
         try:
             self.session = mysql.get_session("%s:%s@%s:%s?ssl-mode=DISABLED" % (self.user, self.__password, self.ip, self.port))
             stmt = "select version()"
@@ -116,6 +119,7 @@ class ProxySQL:
             # create the monitor user in the primary
             session.run_sql("create user %s identified by '%s'" % (self.monitor_user, self.monitor_pwd))
             session.run_sql("grant select on sys.* to '%s'" % self.monitor_user)
+        print("ProxySQL is configured to use MySQL InnoDB Cluster which %s is part" % shell.parse_uri(session.get_uri())['host'])
         return    
 
     def get_hosts(self):
@@ -135,6 +139,9 @@ class ProxySQL:
         return
 
     def set_user_hostgroup(self, hostgroup, user, password=False):
+        if not hostgroup or not user:
+            print("Adding a user requires <hostgroup> and <user> as mandatory parameters")
+            return
         if not password:
             password = shell.prompt('Password: ',{'type': 'password'})
         stmt = """REPLACE into mysql_users(username, password, default_hostgroup)

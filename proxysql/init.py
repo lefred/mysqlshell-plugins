@@ -24,8 +24,8 @@ else:
         })
 
 
-def create(ip, port, user, password):
-    my_proxy = ProxySQL(ip, port, user, password)
+def create(uri):
+    my_proxy = ProxySQL(uri)
     return { 
          'connections': lambda route_to_find="": my_proxy.connections(route_to_find), 
          'status': lambda loop=False: my_proxy.get_status(loop), 
@@ -37,14 +37,11 @@ def create(ip, port, user, password):
          'setUser': lambda hostgroup="", user="", password=False: my_proxy.set_user_hostgroup(hostgroup,user,password),
     }
                         
-shell.add_extension_object_member(proxysql, 'create', lambda ip, port, user, password=False:create(ip, port, user, password), 
+shell.add_extension_object_member(proxysql, 'create', lambda uri=False:create(uri), 
             {
                 'brief':'Create the ProxySQL Object', 'details':['It has ProxySQL methods.'], 
                 'parameters':[
-                                {'name':'ip', 'type':'string', 'required':True, 'brief':'ip'},
-                                {'name':'port', 'type':'integer', 'required':True, 'brief':'port'},
-                                {'name':'user', 'type':'string', 'required':True, 'brief':'user'},
-                                {'name':'password', 'type':'string', 'required':False, 'brief':'password'}
+                                {'name':'uri', 'type':'string', 'required':True, 'brief':'connection uri to ProxySQL Admin port'},
                         ]
                 }
             )
