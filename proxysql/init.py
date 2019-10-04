@@ -35,6 +35,8 @@ def create(uri):
          'hostgroups': lambda: my_proxy.get_hostgroups(),
          'getUsers': lambda hostgroup="": my_proxy.get_user_hostgroup(hostgroup),
          'setUser': lambda hostgroup="", user="", password=False: my_proxy.set_user_hostgroup(hostgroup,user,password),
+         'importUsers': lambda hostgroup="", user_search="": my_proxy.import_users(hostgroup, user_search),
+         'setUserHostgroup': lambda hostgroup="", user_search="": my_proxy.set_host_group(hostgroup, user_search)
     }
                         
 shell.add_extension_object_member(proxysql, 'create', lambda uri=False:create(uri), 

@@ -64,6 +64,23 @@ class ProxySQL:
             return members
         return None
 
+    def __return_mysql_users(self,session,search):
+        stmt = """select User, authentication_string from mysql.user where user like '%s' 
+                         and user not like 'mysql.%%' 
+                         and user not like 'mysql_innodb_cluster_%%'""" % search
+        print stmt
+        result = session.run_sql(stmt)
+        users = []
+        users_rec = result.fetch_all()
+        if len(users_rec) > 0:
+            for user in users_rec:
+                mysql_user = {}
+                mysql_user['username'] = user[0]
+                mysql_user['password'] = user[1]
+                users.append(mysql_user)
+            return users
+        return None
+
     def __return_hosts(self):
         stmt = """select hostname, port from mysql_servers"""
         result = self.session.run_sql(stmt)
@@ -122,6 +139,29 @@ class ProxySQL:
         print("ProxySQL is configured to use MySQL InnoDB Cluster which %s is part" % shell.parse_uri(session.get_uri())['host'])
         return    
 
+    def set_host_group(self, hostgroup, user):
+        if not hostgroup or not user:
+            print("Setting a hosgroup to a user requires <hostgroup> and <user> as mandatory parameters")
+            return
+        stmt = """select username, default_hostgroup from mysql_users
+                       where username like '%s'""" % user
+        result = self.session.run_sql(stmt)
+        users_rec = result.fetch_all()
+        if len(users_rec) > 0:
+            for user in users_rec:
+                stmt = """UPDATE mysql_users set  default_hostgroup=%d
+                      WHERE username = '%s'""" % (hostgroup, user[0])
+                self.session.run_sql(stmt)
+                print("User [%s] changed from hostgroup [%s] to [%d]" % (user[0], user[1], hostgroup))
+        else:
+            print("No user found matching '%s'") % user
+            return
+        stmt = "save mysql users to disk";
+        self.session.run_sql(stmt)
+        stmt = "load mysql users to run";
+        self.session.run_sql(stmt)
+        return
+
     def get_hosts(self):
         if len(self.hosts) == 0:
             self.hosts = self.__return_hosts()
@@ -152,6 +192,29 @@ class ProxySQL:
         stmt = "load mysql users to run";
         self.session.run_sql(stmt)
         return
+
+    def import_users(self, hostgroup, user_search,session=None):
+        if session is None:
+            session = shell.get_session()
+        if session is None: 
+            print("No session specified. Either pass a session object to this "
+                  "function or connect the shell to a member of an InnoDB Cluster")
+            return
+        if not hostgroup or not user_search:
+            print("Importing users from MySQL requires <hostgroup> and <user search pattern> as mandatory parameters")
+            return
+        mysql_users = self.__return_mysql_users(session, user_search) 
+        for mysql_user in mysql_users:
+            stmt = """REPLACE into mysql_users(username, password, default_hostgroup)
+                      VALUES ('%s', '%s', %d)""" % (mysql_user['username'], mysql_user['password'], hostgroup)
+            self.session.run_sql(stmt)
+            print("%s added or updated" % mysql_user['username'])
+        stmt = "save mysql users to disk";
+        self.session.run_sql(stmt)
+        stmt = "load mysql users to run";
+        self.session.run_sql(stmt)
+        return
+
 
     def get_user_hostgroup(self, hostgroup=False):
         if not hostgroup:
