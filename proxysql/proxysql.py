@@ -68,7 +68,6 @@ class ProxySQL:
         stmt = """select User, authentication_string from mysql.user where user like '%s' 
                          and user not like 'mysql.%%' 
                          and user not like 'mysql_innodb_cluster_%%'""" % search
-        print stmt
         result = session.run_sql(stmt)
         users = []
         users_rec = result.fetch_all()
@@ -204,15 +203,18 @@ class ProxySQL:
             print("Importing users from MySQL requires <hostgroup> and <user search pattern> as mandatory parameters")
             return
         mysql_users = self.__return_mysql_users(session, user_search) 
-        for mysql_user in mysql_users:
-            stmt = """REPLACE into mysql_users(username, password, default_hostgroup)
-                      VALUES ('%s', '%s', %d)""" % (mysql_user['username'], mysql_user['password'], hostgroup)
+        if mysql_users: 
+            for mysql_user in mysql_users:
+                stmt = """REPLACE into mysql_users(username, password, default_hostgroup)
+                      	VALUES ('%s', '%s', %d)""" % (mysql_user['username'], mysql_user['password'], hostgroup)
+                self.session.run_sql(stmt)
+                print("%s added or updated" % mysql_user['username'])
+            stmt = "save mysql users to disk"
             self.session.run_sql(stmt)
-            print("%s added or updated" % mysql_user['username'])
-        stmt = "save mysql users to disk";
-        self.session.run_sql(stmt)
-        stmt = "load mysql users to run";
-        self.session.run_sql(stmt)
+            stmt = "load mysql users to run"
+            self.session.run_sql(stmt)
+        else:
+            print("No user found!")
         return
 
 
