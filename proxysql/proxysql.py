@@ -135,6 +135,60 @@ class ProxySQL:
             # create the monitor user in the primary
             session.run_sql("create user %s identified by '%s'" % (self.monitor_user, self.monitor_pwd))
             session.run_sql("grant select on sys.* to '%s'" % self.monitor_user)
+        ## Check is the required sys view is installed
+        result = session.run_sql("""select table_name from information_schema.views 
+        where table_schema='sys' and table_name = 'gr_member_routing_candidate_status'""")
+        if len(result.fetch_all()) > 0:
+            print("The required view is already present, good !")
+        else:
+            # check is we are on primary
+            result = session.run_sql("""select member_role from performance_schema.replication_group_members 
+            where member_host = @@hostname and member_role='PRIMARY'""")
+            if len(result.fetch_all()) == 0:
+                print("ERROR: Please connect or provide a session to the Primary Master.")
+                return 
+            result = session.run_sql("""DROP FUNCTION IF EXISTS sys.my_id""")
+            result = session.run_sql("""CREATE FUNCTION sys.my_id() RETURNS TEXT(36) DETERMINISTIC NO SQL RETURN (SELECT @@global.server_uuid as my_id)""")
+            result = session.run_sql("""DROP FUNCTION IF EXISTS sys.gr_member_in_primary_partition""")
+            result = session.run_sql("""CREATE FUNCTION sys.gr_member_in_primary_partition()
+                    RETURNS VARCHAR(3)
+                    DETERMINISTIC
+                    BEGIN
+                      RETURN (
+                        select
+                        if((select count(*) from performance_schema.replication_group_members 
+                               where MEMBER_STATE NOT IN ('ONLINE', 'RECOVERING')) <=
+                            (select count(*) from performance_schema.replication_group_members)/2, "yes", "no") valid
+                        from performance_schema.replication_group_members where member_host=@@hostname);
+                    END""")
+            result = session.run_sql("""DROP FUNCTION IF EXISTS sys.gr_transactions_behind""")
+            result = session.run_sql("""CREATE FUNCTION sys.gr_transactions_behind()
+                RETURNS INTEGER
+                DETERMINISTIC
+                BEGIN
+                  RETURN (
+                   select Count_Transactions_Remote_In_Applier_Queue from performance_schema.replication_group_member_stats
+                   where member_id=my_id());
+
+                END""")
+            result = session.run_sql("""DROP FUNCTION IF EXISTS sys.gr_transactions_tocert""")
+            result = session.run_sql("""CREATE FUNCTION sys.gr_transactions_tocert()
+                RETURNS INTEGER
+                DETERMINISTIC
+                BEGIN
+                  RETURN (
+                    select Count_Transactions_in_Queue from performance_schema.replication_group_member_stats
+                   where member_id=my_id());
+                END""")
+            result = session.run_sql("""DROP VIEW IF EXISTS sys.gr_member_routing_candidate_status""")
+            result = session.run_sql("""CREATE VIEW sys.gr_member_routing_candidate_status AS SELECT
+                sys.gr_member_in_primary_partition() as viable_candidate,
+                IF( (SELECT (SELECT GROUP_CONCAT(variable_value) FROM
+                performance_schema.global_variables WHERE variable_name IN ('read_only',
+                'super_read_only')) != 'OFF,OFF'), 'YES', 'NO') as read_only,
+                sys.gr_transactions_behind() AS transactions_behind, sys.gr_transactions_tocert() as 'transactions_to_cert'
+                from performance_schema.replication_group_member_stats where member_id=sys.my_id()""")
+
         print("ProxySQL is configured to use MySQL InnoDB Cluster which %s is part" % shell.parse_uri(session.get_uri())['host'])
         return    
 
