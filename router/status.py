@@ -1,5 +1,15 @@
-import json
-import requests
+import sys
+try:
+    import json
+except:
+    print("Error importing module json, check if it's installed")
+    sys.exit(1)
+
+try: 
+    import requests
+except:
+    print("Error importing module requests, check if it's installed")
+    sys.exit(1)
 
 api_ver = "20190715"
 
