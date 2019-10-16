@@ -5,7 +5,6 @@
 
 def _returnBinlogEvents(session, binlog):
     stmt = "SHOW BINLOG EVENTS in '%s'" % binlog
-    print(stmt)
     result = session.run_sql(stmt) 
     events = result.fetch_all()
     if (result.get_warnings_count() > 0):
