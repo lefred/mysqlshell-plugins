@@ -107,6 +107,10 @@ def show_trx_size_sort(limit=10,binlog=None, session=None):
                   "function or connect the shell to a database")
             return
 
+    if not session.uri.startswith('mysqlx'):
+            print("The session object is not using X Protocol, please connect using mysqlx.")
+            return
+
     binlogs = _returnBinlogs(session)
     binlog_files = []
     if binlogs:

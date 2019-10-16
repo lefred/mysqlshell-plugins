@@ -44,19 +44,12 @@
 
 def __returnDefaults(session, schema, table):
     # Define the query to get the routines
-    i_s = session.get_schema("information_schema")
-    filters = ["TABLE_SCHEMA = :schema"]
-    filters.append("TABLE_NAME = :table")
-    stmt = i_s.COLUMNS.select(
-        "COLUMN_NAME AS ColName",
-        "COLUMN_TYPE AS DataType",
-        "COLUMN_DEFAULT")
-    stmt = stmt.where(" AND ".join(filters))
+    stmt = """SELECT COLUMN_NAME ColName, COLUMN_TYPE DataType, COLUMN_DEFAULT
+              FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '%s' AND
+              TABLE_NAME = '%s'""" % (schema, table)
 
     # Execute the query and check for warnings
-    stmt = stmt.bind("schema", schema).bind("table", table)
-    result = stmt.execute()
-    #routines = result.fetch_all()
+    result = session.run_sql(stmt)
     defaults = result.fetch_all()
     if (result.get_warnings_count() > 0):
         # Bail out and print the warnings
@@ -78,9 +71,9 @@ def show_defaults(table, schema=None, session=None):
             print("No session specified. Either pass a session object to this "
                   "function or connect the shell to a database")
             return
-    if not session.uri.startswith('mysqlx'):
-            print("The session object is not using X Protocol, please connect using mysqlx.")
-            return
+    #if not session.uri.startswith('mysqlx'):
+    #        print("The session object is not using X Protocol, please connect using mysqlx.")
+    #        return
     if schema is None:
         if session.current_schema is None:
             print("No schema specified. Either pass a schema name or use one")
@@ -101,7 +94,7 @@ def show_defaults(table, schema=None, session=None):
             col_expr = 'NULL'
         else:
             col_expr = col_expr.replace('\\', '')
-        query = session.sql("select {0}".format(col_expr))
+        query = session.run_sql("select {0}".format(col_expr))
         if col_expr == 'NULL':
             ex_str = col_expr
         else:
