@@ -9,20 +9,16 @@
 
 def __returnRoutines(session, schema):
     # Define the query to get the routines
-    i_s = session.get_schema("information_schema")
     if schema is not None:
-        filters = ["ROUTINE_SCHEMA = :schema"]
-    stmt = i_s.COLUMNS.select(
-        "ROUTINE_SCHEMA AS SchemaName",
-        "ROUTINE_NAME AS RoutineName",
-        "ROUTINE_TYPE AS RoutineType",
-        "DEFINE AS RoutineDefine")
+        filters = "WHERE ROUTINE_SCHEMA = '%s'" % schema
+    stmt = """SELECT ROUTINE_SCHEMA AS SchemaName, ROUTINE_NAME AS RoutineName, 
+              ROUTINE_TYPE AS RoutineType, DEFINE AS RoutineDefine 
+              FROM INFORMATION_SCHEMA.COLUMNS"""
     if filters:
-        stmt = stmt.where(" AND ".join(filters))
+        stmt = stmt + filters
 
     # Execute the query and check for warnings
-    stmt = stmt.bind("schema", schema)
-    result = stmt.execute()
+    result = session.run_sql(stmt)
     #routines = result.fetch_all()
     defaults = result.fetch_all()
     if (result.get_warnings_count() > 0):
