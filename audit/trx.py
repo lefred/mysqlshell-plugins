@@ -94,3 +94,42 @@ def show_trx_size(binlog=None, session=None):
           print_binlog = False
        print("%s" % _format_bytes(row[4]-row[1]))
     return 
+
+def show_trx_size_sort(limit=10,binlog=None, session=None):
+    # Get hold of the global shell object
+    import mysqlsh
+    shell = mysqlsh.globals.shell
+
+    if session is None:
+        session = shell.get_session()
+        if session is None:
+            print("No session specified. Either pass a session object to this "
+                  "function or connect the shell to a database")
+            return
+
+    binlogs = _returnBinlogs(session)
+    binlog_files = []
+    if binlogs:
+       for entry in binlogs:
+          binlog_files.append(entry[0]) 
+
+    if binlog is None:
+        binlog = binlog_files[-1]
+    else:
+        if binlog not in binlog_files:
+           print("%s not present on the server" % binlog)
+           return
+    
+    binlog_events = _returnBinlogEvents(session, binlog)
+    print_binlog = True
+    list_binlogs=[]
+    for row in binlog_events:
+       if print_binlog:
+          print("Transactions in binary log %s orderer by size (limit %d):" % (row[0], limit))
+          print_binlog = False
+       list_binlogs.append(row[4]-row[1])
+    list_binlogs.sort(reverse=True)
+    del list_binlogs[limit:]
+    for val in list_binlogs:
+       print("%s" % _format_bytes(val))
+    return 
