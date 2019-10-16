@@ -78,6 +78,9 @@ def show_defaults(table, schema=None, session=None):
             print("No session specified. Either pass a session object to this "
                   "function or connect the shell to a database")
             return
+    if not session.uri.startswith('mysqlx'):
+            print("The session object is not using X Protocol, please connect using mysqlx.")
+            return
     if schema is None:
         if session.current_schema is None:
             print("No schema specified. Either pass a schema name or use one")
