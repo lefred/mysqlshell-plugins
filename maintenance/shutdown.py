@@ -42,5 +42,7 @@ def shutdown(session=None):
     session2 = _connect_to_std_protocol(session) 
     print("Stopping mysqld....")
     _send_to_mysql_std(session2, "shutdown")
+    session2.close()
+    session.close()
     return  
 
