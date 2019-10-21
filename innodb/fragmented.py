@@ -1,4 +1,7 @@
-def get_fragmented_tables(percentage=10):
+def get_fragmented_tables(percentage=10, session=None):
+    import mysqlsh
+    shell = mysqlsh.globals.shell
+
     if session is None:
         session = shell.get_session()
         if session is None:
@@ -10,7 +13,7 @@ def get_fragmented_tables(percentage=10):
     stats = result.fetch_all()
     if len(stats) > 0:
        for stat in stats:
-           if stat > 0:
+           if int(stat[0]) > 0:
                print ("Warning: information_schema_stats_expiry is set to {0}.".format(*stat))
     stmt = """SELECT CONCAT(table_schema, '.', table_name) as 'TABLE', 
        ENGINE, CONCAT(ROUND(table_rows / 1000000, 2), 'M') `ROWS`, 
