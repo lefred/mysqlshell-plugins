@@ -11,6 +11,7 @@ from ext.mysqlsh_plugins_common import register_plugin
 from ext.schema import src as schema_src
 from ext.schema import defaults as schema_defaults 
 from ext.schema import delproc as schema_delproc
+from ext.schema import dates as schema_dates
 
 
 register_plugin("showProcedures", schema_src.show_procedures,
@@ -85,6 +86,32 @@ register_plugin("deleteProcedures", schema_delproc.delete_procedures,
             {
                 "name": "routine",
                 "brief": "The routine/procedure to be deleted..",
+                "type": "string",
+                "required": False
+            },
+            {
+                "name": "session",
+                "brief": "The session to be used on the operation.",
+                "type": "object",
+                "classes": ["Session", "ClassicSession"],
+                "required": False
+            }
+        ]
+    },
+    "schema")
+register_plugin("showInvalidDates", schema_dates.show_invalid_dates,
+    {
+        "brief": "Show Invalide Dates",
+        "parameters": [
+            {
+                "name": "table",
+                "brief": "The table to check",
+                "type": "string",
+                "required": False
+            },
+            {
+                "name": "schema",
+                "brief": "The schema to check.",
                 "type": "string",
                 "required": False
             },
