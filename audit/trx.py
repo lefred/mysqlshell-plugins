@@ -92,7 +92,10 @@ def show_trx_size(binlog=None, session=None):
        if print_binlog:
           print("Transactions in binary log %s:" % row[0])
           print_binlog = False
-       print("%s" % _format_bytes(row[4]-row[1]))
+       if row[5].startswith('BEGIN'):
+           start=row[1]
+       elif row[5].startswith('COMMIT '):
+           print("%s" % _format_bytes(row[4]-start))
     return 
 
 def show_trx_size_sort(limit=10,binlog=None, session=None):
@@ -131,7 +134,10 @@ def show_trx_size_sort(limit=10,binlog=None, session=None):
        if print_binlog:
           print("Transactions in binary log %s orderer by size (limit %d):" % (row[0], limit))
           print_binlog = False
-       list_binlogs.append(row[4]-row[1])
+       if row[5].startswith('BEGIN'):
+           start=row[1]
+       elif row[5].startswith('COMMIT '):
+           list_binlogs.append(row[4]-start)
     list_binlogs.sort(reverse=True)
     del list_binlogs[limit:]
     for val in list_binlogs:
