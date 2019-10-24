@@ -41,7 +41,7 @@ def non_unique(table, col, collation, schema=None, session=None):
 
     charset = collation.split("_")[0];
 
-    query = "select "+col+" as problematic from (select "+col+", count("+col+") over (partition by convert("+col+" using "+charset+") collate "+collation+") as cnt from "+table+") as t  where cnt > 1;"
+    query = "select "+col+" as problematic from (select "+col+", count("+col+") over (partition by convert("+col+" using "+charset+") collate "+collation+") as cnt from "+schema+"."+table+") as t  where cnt > 1;"
 
     result = session.run_sql(query)
     offending = result.fetch_all()
