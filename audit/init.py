@@ -76,3 +76,25 @@ register_plugin("getBinlogs", trx.show_binlogs,
              ]
            }
      )
+
+register_plugin("getBinlogsIO", trx.show_binlogs_io,
+           {"brief": "Prints the IO statistics of binary logs files available on the server",
+             "parameters": [{
+                "name": "session",
+                "brief": "The session to be used on the operation.",
+                "type": "object",
+                "classes": ["Session", "ClassicSession"],
+                "required": False
+            }
+            ]
+           },
+           "audit",
+           {
+             "brief": "Audit management and utilities.",
+             "details": [
+                 "A collection of Audit management tools and utilities"
+             ]
+           }
+     )
+
+

@@ -15,6 +15,27 @@ def _returnBinlogEvents(session, binlog):
 
     return events
 
+def _returnBinlogName(session):
+    stmt = "SHOW BINLOG EVENTS limit 1" 
+    result = session.run_sql(stmt) 
+    row = result.fetch_one()
+    if (result.get_warnings_count() > 0):
+        # Bail out and print the warnings
+        print("Warnings occurred - bailing out:")
+        print(result.get_warnings())
+        return False
+
+    return '.'.join(row[0].split('.')[:-1])
+
+def _returnBinlogIO(session, name):
+    stmt = """select * from sys.io_global_by_file_by_bytes 
+              where file COLLATE 'utf8mb4_0900_ai_ci' 
+              like '%%/%s%%' COLLATE 'utf8mb4_0900_ai_ci' order by file;""" % name
+    result = session.run_sql(stmt) 
+
+    return result
+
+
 def _returnBinlogs(session):
     stmt = "SHOW BINARY LOGS"
     result = session.run_sql(stmt)
@@ -30,8 +51,6 @@ def _returnBinlogs(session):
 
     return binlogs
 
-
-
 def _format_bytes(size):
     # 2**10 = 1024
     power = 2**10
@@ -41,6 +60,28 @@ def _format_bytes(size):
        size /= power
 
     return "%d tb" % (size,)
+
+def show_binlogs_io(session=None):
+    # Get hold of the global shell object
+    import mysqlsh
+    shell = mysqlsh.globals.shell
+
+    if session is None:
+        session = shell.get_session()
+        if session is None:
+            print("No session specified. Either pass a session object to this "
+                  "function or connect the shell to a database")
+            return
+    binlog = _returnBinlogName(session)
+    if binlog:
+        rows = _returnBinlogIO(session, binlog)
+        shell.dump_rows(rows)
+    else:
+        print("ERROR: problem getting binary log's name!")
+        return False
+ 
+    return rows 
+
 
 def show_binlogs(session=None):
     # Get hold of the global shell object
