@@ -35,6 +35,12 @@ def _returnBinlogIO(session, name):
 
     return result
 
+def _returnBinlogTotalIO(session):
+    stmt = """select * from sys.io_global_by_wait_by_bytes 
+              where event_name = 'sql/binlog'"""
+    result = session.run_sql(stmt) 
+
+    return result
 
 def _returnBinlogs(session):
     stmt = "SHOW BINARY LOGS"
@@ -79,8 +85,14 @@ def show_binlogs_io(session=None):
     else:
         print("ERROR: problem getting binary log's name!")
         return False
- 
-    return rows 
+
+    total_IO = _returnBinlogTotalIO(session)
+    header = total_IO.get_column_names()
+    rows = total_IO.fetch_all()
+    for row in rows:
+        print("  %s: %s     %s: %d (%s)     %s: %d (%s) " % 
+                (header[2], row[2], header[6], row[6], row[7], header[9], row[9], row[10]))
+    return  
 
 
 def show_binlogs(session=None):
