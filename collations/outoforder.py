@@ -24,7 +24,12 @@ def out_of_order(table, col, collation, schema=None, session=None):
 
     charset = collation.split("_")[0];
 
-    query = "with pairs as (select lag("+col+",1) over w as v1, "+col+" as v2 from "+table+" window w as (order by "+col+")), results as( select v1,convert(v1 using "+charset+") > convert(v2 using "+charset+") collate "+collation+" as new_order from pairs) select count(v1) as out_of_order from results where new_order=1";
+    query = """with pairs as (select lag(%s,1) over w as v1, %s as v2 
+               from %s window w as (order by %s)), results as( 
+                select v1,convert(v1 using %s) > convert(v2 using %s) collate %s 
+                as new_order from pairs) 
+               select count(v1) as out_of_order 
+               from results where new_order=1""" % (col, col, table, col, charset, charset, collation)
 
     result = session.run_sql(query)
     offending = result.fetch_all()
