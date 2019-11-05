@@ -12,11 +12,11 @@ def show_password_expire(show_expired=True, session=None):
     result = session.run_sql(stmt)   
     rows = result.fetch_all()
     if rows[0][0] == 0:
-        print "Default password doesn't expire"
+        print("Default password doesn't expire")
     else:
-        print "Default password expires in %d days" % rows[0][0]
+        print("Default password expires in %d days" % rows[0][0])
     if rows[0][1] == 1:
-        print "On expired password disconnect"  
+        print("On expired password disconnect")
     if show_expired:
         stmt = """select concat(sys.quote_identifier(user),'@',sys.quote_identifier(host))
               AS user, 
