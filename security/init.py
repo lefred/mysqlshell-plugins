@@ -33,6 +33,7 @@
 
 from ext.mysqlsh_plugins_common import register_plugin
 from ext.security import expire as security_expire
+from ext.security import authmethod as security_authmethod
 
 register_plugin("showPasswordExpire", security_expire.show_password_expire,
                 {
@@ -83,3 +84,26 @@ register_plugin("showPasswordExpireSoon", security_expire.show_password_expire_s
                 },
                 "security"
                 )
+
+register_plugin("showAuthMethods", security_authmethod.get_user_auth_method,
+                {
+                    "brief": "Lists all specified authentication method and the amount of users using it.",
+                    "parameters": [
+                        {
+                            "name": "user",
+                            "brief": "User to look for, it allows %%.",
+                            "type": "string",
+                            "required": False
+                        },
+                        {
+                            "name": "session",
+                            "brief": "The session to be used on the operation.",
+                            "type": "object",
+                            "classes": ["Session", "ClassicSession"],
+                            "required": False
+                        }
+                    ]
+                },
+                "security"
+                )
+
