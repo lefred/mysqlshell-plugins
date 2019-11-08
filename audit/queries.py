@@ -1,3 +1,31 @@
+
+def _get_full_details(shell, session, original_query):
+       answer = shell.prompt('Do you want to have EXPLAIN output? (y/N) ', {'defaultValue':'n'})
+       if answer.lower() == 'y':
+           stmt = """EXPLAIN %s""" % original_query
+           print(stmt)
+           result = session.run_sql(stmt)
+           shell.dump_rows(result,'vertical')
+       answer = shell.prompt('Do you want to have EXPLAIN in JSON format output? (y/N) ', {'defaultValue':'n'})
+       if answer.lower() == 'y':
+           stmt = """EXPLAIN FORMAT=json %s""" % original_query
+           print(stmt)
+           result = session.run_sql(stmt)
+           shell.dump_rows(result,'vertical')
+       answer = shell.prompt('Do you want to have EXPLAIN in TREE format output? (y/N) ', {'defaultValue':'n'})
+       if answer.lower() == 'y':
+           stmt = """EXPLAIN format=tree %s""" % original_query
+           print(stmt)
+           result = session.run_sql(stmt)
+           shell.dump_rows(result,'vertical')
+       answer = shell.prompt('Do you want to have EXPLAIN ANALYZE output? (y/N) ', {'defaultValue':'n'})
+       if answer.lower() == 'y':
+           stmt = """EXPLAIN ANALYZE %s""" % original_query
+           print(stmt)
+           result = session.run_sql(stmt)
+           shell.dump_rows(result,'vertical')
+       return
+
 def get_queries_95_perc(limit=1, select=False, schema=None, session=None):
 
     import mysqlsh
@@ -29,6 +57,11 @@ def get_queries_95_perc(limit=1, select=False, schema=None, session=None):
 
     result = session.run_sql(stmt)
     shell.dump_rows(result,'vertical')
+
+    if limit == 1:
+       result = session.run_sql(stmt)
+       original_query = result.fetch_one()[6]
+       _get_full_details(shell, session, original_query)
 
 def get_queries_ft_scan(limit=1, schema=None, session=None):
 
@@ -62,6 +95,11 @@ def get_queries_ft_scan(limit=1, schema=None, session=None):
     result = session.run_sql(stmt)
     shell.dump_rows(result,'vertical')
 
+    if limit == 1:
+       result = session.run_sql(stmt)
+       original_query = result.fetch_one()[6]
+       _get_full_details(shell, session, original_query)
+
 def get_queries_temp_disk(limit=1, schema=None, session=None):
 
     import mysqlsh
@@ -94,3 +132,7 @@ def get_queries_temp_disk(limit=1, schema=None, session=None):
     result = session.run_sql(stmt)
     shell.dump_rows(result,'vertical')
 
+    if limit == 1:
+       result = session.run_sql(stmt)
+       original_query = result.fetch_one()[6]
+       _get_full_details(shell, session, original_query)

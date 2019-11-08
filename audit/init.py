@@ -99,7 +99,7 @@ register_plugin("getBinlogsIO", trx.show_binlogs_io,
      )
 
 register_plugin("getSlowerQuery", queries.get_queries_95_perc,
-           {"brief": "Prints the slowest queries",
+           {"brief": "Prints the slowest queries. If the limit is one you can also see all the details about the query",
              "parameters": [{
                    "name": "limit",
                    "brief": "The amount of query to return. Default is 1.",
