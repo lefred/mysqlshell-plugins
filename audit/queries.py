@@ -1,5 +1,11 @@
 
-def _get_full_details(shell, session, original_query):
+def _get_full_details(shell, session, original_query, schema):
+       if session.get_current_schema() is None: 
+           old_schema=None
+           session.set_current_schema(schema)
+       elif session.get_current_schema().get_name() != schema:
+           old_schema=session.get_current_schema().get_name()
+           session.set_current_schema(schema)
        answer = shell.prompt('Do you want to have EXPLAIN output? (y/N) ', {'defaultValue':'n'})
        if answer.lower() == 'y':
            stmt = """EXPLAIN %s""" % original_query
@@ -24,6 +30,8 @@ def _get_full_details(shell, session, original_query):
            print(stmt)
            result = session.run_sql(stmt)
            shell.dump_rows(result,'vertical')
+       if old_schema:
+           session.set_current_schema(old_schema)
        return
 
 def get_queries_95_perc(limit=1, select=False, schema=None, session=None):
@@ -60,8 +68,10 @@ def get_queries_95_perc(limit=1, select=False, schema=None, session=None):
 
     if limit == 1:
        result = session.run_sql(stmt)
-       original_query = result.fetch_one()[6]
-       _get_full_details(shell, session, original_query)
+       row = result.fetch_one()
+       if row:
+          original_query = row[6]
+          _get_full_details(shell, session, original_query, row[0])
 
 def get_queries_ft_scan(limit=1, schema=None, session=None):
 
@@ -97,8 +107,10 @@ def get_queries_ft_scan(limit=1, schema=None, session=None):
 
     if limit == 1:
        result = session.run_sql(stmt)
-       original_query = result.fetch_one()[6]
-       _get_full_details(shell, session, original_query)
+       row = result.fetch_one()
+       if row:
+          original_query = row[6]
+          _get_full_details(shell, session, original_query)
 
 def get_queries_temp_disk(limit=1, schema=None, session=None):
 
@@ -134,5 +146,7 @@ def get_queries_temp_disk(limit=1, schema=None, session=None):
 
     if limit == 1:
        result = session.run_sql(stmt)
-       original_query = result.fetch_one()[6]
-       _get_full_details(shell, session, original_query)
+       row = result.fetch_one()
+       if row:
+          original_query = row[6]
+          _get_full_details(shell, session, original_query)
