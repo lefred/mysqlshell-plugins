@@ -9,25 +9,21 @@ def _get_full_details(shell, session, original_query, schema):
        answer = shell.prompt('Do you want to have EXPLAIN output? (y/N) ', {'defaultValue':'n'})
        if answer.lower() == 'y':
            stmt = """EXPLAIN %s""" % original_query
-           print(stmt)
            result = session.run_sql(stmt)
            shell.dump_rows(result,'vertical')
        answer = shell.prompt('Do you want to have EXPLAIN in JSON format output? (y/N) ', {'defaultValue':'n'})
        if answer.lower() == 'y':
            stmt = """EXPLAIN FORMAT=json %s""" % original_query
-           print(stmt)
            result = session.run_sql(stmt)
            shell.dump_rows(result,'vertical')
        answer = shell.prompt('Do you want to have EXPLAIN in TREE format output? (y/N) ', {'defaultValue':'n'})
        if answer.lower() == 'y':
            stmt = """EXPLAIN format=tree %s""" % original_query
-           print(stmt)
            result = session.run_sql(stmt)
            shell.dump_rows(result,'vertical')
        answer = shell.prompt('Do you want to have EXPLAIN ANALYZE output? (y/N) ', {'defaultValue':'n'})
        if answer.lower() == 'y':
            stmt = """EXPLAIN ANALYZE %s""" % original_query
-           print(stmt)
            result = session.run_sql(stmt)
            shell.dump_rows(result,'vertical')
        if old_schema:
