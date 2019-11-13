@@ -94,9 +94,9 @@ def show_speed(limit=10,session=None):
     for i in range(limit):
             out = ""
             for secondary in secondaries:
-               stmt = """SELECT LAST_APPLIED_TRANSACTION, LAST_QUEUED_TRANSACTION, 
-                         LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP - 
-	                 LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP 'rep delay (sec)', 
+               stmt = """SELECT if(LAST_APPLIED_TRANSACTION, LAST_APPLIED_TRANSACTION, "0:none") LAST_APPLIED_TRANSACTION, 
+                         LAST_QUEUED_TRANSACTION, LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP - 
+	                    LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP 'rep delay (sec)', 
                          LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP - 
                             LAST_QUEUED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP 'transport time', 
                          LAST_QUEUED_TRANSACTION_END_QUEUE_TIMESTAMP - 
@@ -109,7 +109,15 @@ def show_speed(limit=10,session=None):
                         WHERE t1.channel_name='group_replication_applier'"""
                result = secondary_sessions[secondary].run_sql(stmt)
                row = result.fetch_one()
-               out = "%s	%s		%s	%s		%s	%s	%s	" % (secondary, row[0].split(':')[1], row[2], row[1].split(':')[1], row[3], row[4], row[5]) 
+               if int(row[2].split('.')[0]) > 2019111308000:
+                    delay_time="n/a	"
+               else:
+                    delay_time=row[2]
+               if int(row[3].split('.')[0]) > 2019111308000:
+                    trans_time="n/a	"
+               else:
+                    trans_time=row[3]
+               out = "%s	%s		%s	%s		%s	%s	%s	" % (secondary, row[0].split(':')[1], delay_time, row[1].split(':')[1], trans_time, row[4], row[5]) 
                print(out) 
             print(" ")
             time.sleep(1)
