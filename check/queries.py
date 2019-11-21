@@ -106,7 +106,7 @@ def get_queries_ft_scan(limit=1, schema=None, session=None):
        row = result.fetch_one()
        if row:
           original_query = row[6]
-          _get_full_details(shell, session, original_query)
+          _get_full_details(shell, session, original_query, row[0])
 
 def get_queries_temp_disk(limit=1, schema=None, session=None):
 
