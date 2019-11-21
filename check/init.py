@@ -1,6 +1,6 @@
 from ext.mysqlsh_plugins_common import register_plugin
-from ext.audit import trx
-from ext.audit import queries
+from ext.check import trx
+from ext.check import queries
 
 
 register_plugin("showTrxSize", trx.show_trx_size,
@@ -19,11 +19,11 @@ register_plugin("showTrxSize", trx.show_trx_size,
             }
             ]
            },
-           "audit",
+           "check",
            {
-             "brief": "Audit management and utilities.",
+             "brief": "Check management and utilities.",
              "details": [
-                 "A collection of Audit management tools and utilities"
+                 "A collection of Check management tools and utilities"
              ]
            }
      )
@@ -49,11 +49,11 @@ register_plugin("showTrxSizeSort", trx.show_trx_size_sort,
             }
             ]
            },
-           "audit",
+           "check",
            {
-             "brief": "Audit management and utilities.",
+             "brief": "Check management and utilities.",
              "details": [
-                 "A collection of Audit management tools and utilities"
+                 "A collection of Check management tools and utilities"
              ]
            }
      )
@@ -69,11 +69,11 @@ register_plugin("getBinlogs", trx.show_binlogs,
             }
             ]
            },
-           "audit",
+           "check",
            {
-             "brief": "Audit management and utilities.",
+             "brief": "Check management and utilities.",
              "details": [
-                 "A collection of Audit management tools and utilities"
+                 "A collection of Check management tools and utilities"
              ]
            }
      )
@@ -89,11 +89,11 @@ register_plugin("getBinlogsIO", trx.show_binlogs_io,
             }
             ]
            },
-           "audit",
+           "check",
            {
-             "brief": "Audit management and utilities.",
+             "brief": "Check management and utilities.",
              "details": [
-                 "A collection of Audit management tools and utilities"
+                 "A collection of Check management tools and utilities"
              ]
            }
      )
@@ -124,11 +124,11 @@ register_plugin("getSlowerQuery", queries.get_queries_95_perc,
                 }
             ]
            },
-           "audit",
+           "check",
            {
-             "brief": "Audit management and utilities.",
+             "brief": "Check management and utilities.",
              "details": [
-                 "A collection of Audit management tools and utilities"
+                 "A collection of Check management tools and utilities"
              ]
            }
      )
@@ -155,11 +155,11 @@ register_plugin("getQueryTempDisk", queries.get_queries_temp_disk,
                 }
             ]
            },
-           "audit",
+           "check",
            {
-             "brief": "Audit management and utilities.",
+             "brief": "Check management and utilities.",
              "details": [
-                 "A collection of Audit management tools and utilities"
+                 "A collection of Check management tools and utilities"
              ]
            }
      )
@@ -186,11 +186,11 @@ register_plugin("getFullTableScanQuery", queries.get_queries_ft_scan,
                 }
             ]
            },
-           "audit",
+           "check",
            {
-             "brief": "Audit management and utilities.",
+             "brief": "Check management and utilities.",
              "details": [
-                 "A collection of Audit management tools and utilities"
+                 "A collection of Check management tools and utilities"
              ]
            }
      )

@@ -1,6 +1,6 @@
 # audi/trx.py
 # -----------------
-# Definition of member functions for the audit extension object to display trx info
+# Definition of member functions for the check extension object to display trx info
 #
 
 def _returnBinlogEvents(session, binlog):
