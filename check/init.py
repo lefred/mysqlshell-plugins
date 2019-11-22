@@ -98,6 +98,68 @@ register_plugin("getBinlogsIO", trx.show_binlogs_io,
            }
      )
 
+register_plugin("getTrxWithMostStatements", trx.get_trx_most_stmt,
+           {"brief": "Prints the transaction with the most amount of statements",
+             "parameters": [{
+                   "name": "limit",
+                   "brief": "The amount of query to return. Default is 1.",
+                   "type": "integer",
+                   "required": False
+                },{
+                   "name": "schema",
+                   "brief": "The name of the schema to look at.",
+                   "type": "string",
+                   "required": False
+                },{
+                   "name": "session",
+                   "brief": "The session to be used on the operation.",
+                   "type": "object",
+                   "classes": ["Session", "ClassicSession"],
+                   "required": False
+                }
+            ]
+           },
+           "check",
+           {
+             "brief": "Check management and utilities.",
+             "details": [
+                 "A collection of Check management tools and utilities"
+             ]
+           }
+     )
+
+register_plugin("getTrxWithMostRowsAffected", trx.get_trx_most_rows,
+           {"brief": "Prints the transaction with the most amount of statements",
+             "parameters": [{
+                   "name": "limit",
+                   "brief": "The amount of query to return. Default is 1.",
+                   "type": "integer",
+                   "required": False
+                },{
+                   "name": "schema",
+                   "brief": "The name of the schema to look at.",
+                   "type": "string",
+                   "required": False
+                },{
+                   "name": "session",
+                   "brief": "The session to be used on the operation.",
+                   "type": "object",
+                   "classes": ["Session", "ClassicSession"],
+                   "required": False
+                }
+            ]
+           },
+           "check",
+           {
+             "brief": "Check management and utilities.",
+             "details": [
+                 "A collection of Check management tools and utilities"
+             ]
+           }
+     )
+     
+
+
 register_plugin("getSlowerQuery", queries.get_queries_95_perc,
            {"brief": "Prints the slowest queries. If the limit is one you can also see all the details about the query",
              "parameters": [{
@@ -173,6 +235,11 @@ register_plugin("getFullTableScanQuery", queries.get_queries_ft_scan,
                    "type": "integer",
                    "required": False
                 },{
+                   "name": "select",
+                   "brief": "Returns queries only with SELECT.",
+                   "type": "bool",
+                   "required": False
+                },{
                    "name": "schema",
                    "brief": "The name of the schema to look at.",
                    "type": "string",
@@ -195,3 +262,62 @@ register_plugin("getFullTableScanQuery", queries.get_queries_ft_scan,
            }
      )
 
+register_plugin("getQueryMostRowAffected", queries.get_queries_most_rows_affected,
+           {"brief": "Prints the statements affecting the most rows",
+             "parameters": [{
+                   "name": "limit",
+                   "brief": "The amount of query to return. Default is 1.",
+                   "type": "integer",
+                   "required": False
+                },{
+                   "name": "schema",
+                   "brief": "The name of the schema to look at.",
+                   "type": "string",
+                   "required": False
+                },{
+                   "name": "session",
+                   "brief": "The session to be used on the operation.",
+                   "type": "object",
+                   "classes": ["Session", "ClassicSession"],
+                   "required": False
+                }
+            ]
+           },
+           "check",
+           {
+             "brief": "Check management and utilities.",
+             "details": [
+                 "A collection of Check management tools and utilities"
+             ]
+           }
+     )
+
+register_plugin("getQueryUpdatingSamePK", queries.get_queries_updating_same_pk,
+           {"brief": "Prints the statements updating mostly the same PK and therefore having to wait more (hotspot)",
+             "parameters": [{
+                   "name": "limit",
+                   "brief": "The amount of query to return. Default is 1.",
+                   "type": "integer",
+                   "required": False
+                },{
+                   "name": "schema",
+                   "brief": "The name of the schema to look at.",
+                   "type": "string",
+                   "required": False
+                },{
+                   "name": "session",
+                   "brief": "The session to be used on the operation.",
+                   "type": "object",
+                   "classes": ["Session", "ClassicSession"],
+                   "required": False
+                }
+            ]
+           },
+           "check",
+           {
+             "brief": "Check management and utilities.",
+             "details": [
+                 "A collection of Check management tools and utilities"
+             ]
+           }
+     )     

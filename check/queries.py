@@ -1,5 +1,6 @@
 
 def _get_full_details(shell, session, original_query, schema):
+       old_schema=None
        if session.get_current_schema() is None: 
            old_schema=None
            session.set_current_schema(schema)
@@ -69,7 +70,7 @@ def get_queries_95_perc(limit=1, select=False, schema=None, session=None):
           original_query = row[6]
           _get_full_details(shell, session, original_query, row[0])
 
-def get_queries_ft_scan(limit=1, schema=None, session=None):
+def get_queries_ft_scan(limit=1, select=False, schema=None, session=None):
 
     import mysqlsh
     shell = mysqlsh.globals.shell
@@ -82,6 +83,8 @@ def get_queries_ft_scan(limit=1, schema=None, session=None):
             return
 
     filter = ""
+    if select:
+        filter += "AND query_sample_text like '%select%'"
     if schema is not None:
         filter += "AND schema_name = '%s'" % schema
    
@@ -105,7 +108,7 @@ def get_queries_ft_scan(limit=1, schema=None, session=None):
        result = session.run_sql(stmt)
        row = result.fetch_one()
        if row:
-          original_query = row[6]
+          original_query = row[8]
           _get_full_details(shell, session, original_query, row[0])
 
 def get_queries_temp_disk(limit=1, schema=None, session=None):
@@ -146,3 +149,54 @@ def get_queries_temp_disk(limit=1, schema=None, session=None):
        if row:
           original_query = row[6]
           _get_full_details(shell, session, original_query)
+
+def get_queries_most_rows_affected(limit=1, schema=None, session=None):
+
+    import mysqlsh
+    shell = mysqlsh.globals.shell
+
+    if session is None:
+        session = shell.get_session()
+        if session is None:
+            print("No session specified. Either pass a session object to this "
+                  "function or connect the shell to a database")
+            return
+
+    filter = ""
+    if schema is not None:
+        filter += "where db = '%s'" % schema
+   
+    
+    stmt = """SELECT db, rows_affected, rows_affected_avg, query_sample_text
+              FROM sys.statement_analysis  as sa
+              JOIN performance_schema.events_statements_summary_by_digest as ed
+                ON ed.digest=sa.digest %s
+              ORDER BY rows_affected_avg DESC, rows_affected DESC LIMIT %s
+           """ % (filter, limit)
+    result = session.run_sql(stmt)
+    shell.dump_rows(result,'vertical')
+
+def get_queries_updating_same_pk(limit=1, schema=None, session=None):
+
+    import mysqlsh
+    shell = mysqlsh.globals.shell
+
+    if session is None:
+        session = shell.get_session()
+        if session is None:
+            print("No session specified. Either pass a session object to this "
+                  "function or connect the shell to a database")
+            return
+
+    filter = ""
+    if schema is not None:
+        filter += "where (current_schema = '%s' or object_schema = '%s')" % (schema, schema)
+   
+    
+    stmt = """SELECT current_schema, rows_examined, SQL_TEXT
+              FROM performance_schema.events_statements_history_long  
+              WHERE rows_affected > 1 %s
+              ORDER BY timer_wait DESC LIMIT %s
+           """ % (filter, limit)
+    result = session.run_sql(stmt)
+    shell.dump_rows(result,'vertical')
