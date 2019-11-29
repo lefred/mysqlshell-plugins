@@ -77,7 +77,8 @@ def get_alter_progress(session=None):
     stmt="""SELECT stmt.THREAD_ID, stmt.SQL_TEXT, stage.EVENT_NAME AS State,
                    stage.WORK_COMPLETED, stage.WORK_ESTIMATED,
                    lpad(CONCAT(ROUND(100*stage.WORK_COMPLETED/stage.WORK_ESTIMATED, 2),"%"),12," ") 
-                   AS CompletedPct, current_allocated memory           
+                   AS CompletedPct, lpad(format_pico_time(stmt.TIMER_WAIT), 10, " ") AS StartedAgo,
+                   current_allocated Memory           
             FROM performance_schema.events_statements_current stmt                
             INNER JOIN sys.memory_by_thread_by_current_bytes mt  
                     ON mt.thread_id = stmt.thread_id 
