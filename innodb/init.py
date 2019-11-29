@@ -4,6 +4,7 @@
 
 from ext.mysqlsh_plugins_common import register_plugin
 from ext.innodb import fragmented
+from ext.innodb import progress
 
 
 register_plugin("getFragmentedTables", fragmented.get_fragmented_tables,
@@ -31,6 +32,7 @@ register_plugin("getFragmentedTables", fragmented.get_fragmented_tables,
              ]
            }
      )
+
 register_plugin("getFragmentedTablesDisk", fragmented.get_fragmented_tables_disk,
            {"brief": "Prints InnoDB fragmented tables with disk info",
              "parameters": [{
@@ -39,6 +41,27 @@ register_plugin("getFragmentedTablesDisk", fragmented.get_fragmented_tables_disk
                 "type": "integer",
                 "required": False
              },{
+                "name": "session",
+                "brief": "The session to be used on the operation.",
+                "type": "object",
+                "classes": ["Session", "ClassicSession"],
+                "required": False
+            }
+            ]
+           },
+           "innodb",
+           {
+             "brief": "InnoDB management and utilities.",
+             "details": [
+                 "A collection of InnoDB management tools and related "
+                 "utilities that work on InnoDB Engine"
+             ]
+           }
+     )
+
+register_plugin("getAlterProgress", progress.get_alter_progress,
+           {"brief": "Prints InnoDB Alter progress info",
+             "parameters": [{
                 "name": "session",
                 "brief": "The session to be used on the operation.",
                 "type": "object",
