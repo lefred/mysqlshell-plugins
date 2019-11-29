@@ -38,8 +38,8 @@ def _are_instruments_enabled(session, shell):
         for instrument in instruments:
             instruments_str += "%s, " % instrument[0]
 
-        answer = shell.prompt("""Some instruments are not enabled. 
-Do you want to enabled it now (%s)? (y/N) """
+        answer = shell.prompt("""Some instruments are not enabled: %s 
+Do you want to enabled them now ? (y/N) """
                               % instruments_str, {'defaultValue':'n'})
         if answer.lower() == 'y':
             stmt = """UPDATE performance_schema.setup_instruments
