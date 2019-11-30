@@ -15,6 +15,23 @@ def get_tables_in_bp(session=None):
                   "function or connect the shell to a database")
             return
     print("Processing, this can take a while (don't forget to run ANALYZE TABLE for accurate results)...")
+
+    stmt="""select variable_name, format_bytes(variable_value/1) 
+              from performance_schema.global_variables 
+              where variable_name = 'innodb_buffer_pool_size'"""
+    bp_size = session.run_sql(stmt).fetch_one()[1]
+    stmt="""select variable_name, variable_value 
+              from performance_schema.global_variables 
+              where variable_name = 'innodb_buffer_pool_instances'"""
+    bp_instances = session.run_sql(stmt).fetch_one()[1]
+    
+    if int(bp_instances) > 1:
+        bp_instances_str = "%s instances" % bp_instances
+    else:
+        bp_instances_str = "%s instance" % bp_instances
+
+    print("InnoDB Buffer Pool Size = %s (%s)" % (bp_size, bp_instances_str))
+
     stmt="""SELECT t1.TABLE_NAME 'Table Name', COUNT(*) AS Pages,   
                    format_bytes(SUM(IF(COMPRESSED_SIZE = 0, 16384, COMPRESSED_SIZE))) 
                       AS 'Total Data in BP', 
