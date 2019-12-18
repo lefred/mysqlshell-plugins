@@ -4,9 +4,10 @@
 #
 
 from mysqlsh import mysql
+from mysqlsh import mysqlx
 
 
-def connect_with_mycnf(mysqlx=False, file=None):
+def connect_with_mycnf(use_mysqlx=False, file=None):
     try:
         import configparser
     except:
@@ -24,19 +25,26 @@ def connect_with_mycnf(mysqlx=False, file=None):
     print("let's use info from %s to connect" % file)        
     config = configparser.ConfigParser()
     config.read(file)    
+    if not config.has_section('client'):
+        print("ERROR: your my.cnf file should contain a section '[client]'")
+        return
+
     user=config['client'].get('user', getpass.getuser())
     hostname=config['client'].get('host', 'localhost')
-    port=config['client'].get('port', '3306')
     password=config['client'].get('password', '')
 
-    if mysqlx:
-        scheme = "mysqlx"
-    else:
-        scheme = "mysql"
-    
     import mysqlsh
     shell = mysqlsh.globals.shell
-    session = mysql.get_session("%s://%s:%s@%s:%s" % (scheme, user, password, hostname, port))
+
+    if use_mysqlx:
+        scheme = "mysqlx"
+        port=config['client'].get('port', '33060')
+        session = mysqlx.get_session("%s://%s:%s@%s:%s" % (scheme, user, password, hostname, port))
+    else:
+        scheme = "mysql"
+        port=config['client'].get('port', '3306')
+        session = mysql.get_session("%s://%s:%s@%s:%s" % (scheme, user, password, hostname, port))
+    
     shell.set_session(session)
     
     return
