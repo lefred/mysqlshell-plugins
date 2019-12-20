@@ -5,7 +5,7 @@
 
 from mysqlsh import mysql
 from mysqlsh import mysqlx
-
+import re
 
 def connect_with_mycnf(use_mysqlx=False, file=None):
     try:
@@ -35,15 +35,16 @@ def connect_with_mycnf(use_mysqlx=False, file=None):
 
     import mysqlsh
     shell = mysqlsh.globals.shell
-
     if use_mysqlx:
         scheme = "mysqlx"
         port=config['client'].get('port', '33060')
-        session = mysqlx.get_session("%s://%s:%s@%s:%s" % (scheme, user, password, hostname, port))
+        connection_dict = { "scheme": scheme, "user": user, "password": password, "host": hostname, "port": port }
+        session = mysqlx.get_session(connection_dict)
     else:
         scheme = "mysql"
         port=config['client'].get('port', '3306')
-        session = mysql.get_session("%s://%s:%s@%s:%s" % (scheme, user, password, hostname, port))
+        connection_dict = { "scheme": scheme, "user": user, "password": password, "host": hostname, "port": port }
+        session = mysql.get_session(connection_dict)
     
     shell.set_session(session)
     
