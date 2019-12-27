@@ -1,5 +1,6 @@
 import mysqlsh
 import time
+import sys
 from mysqlsh import mysql
 
 shell = mysqlsh.globals.shell
@@ -25,6 +26,9 @@ class ProxySQL:
         self.uri = uri
 
         self.user = shell.parse_uri(self.uri)['user']
+        if self.user == 'admin':
+           sys.tracebacklimit = 0
+           raise Exception("You should not use the default 'admin' user, please create a new one in ProxySQL")
         self.ip = shell.parse_uri(self.uri)['host']
         self.port = shell.parse_uri(self.uri)['port']
         if not "password" in shell.parse_uri(self.uri):
@@ -38,7 +42,8 @@ class ProxySQL:
             self.version = result.fetch_one()[0]
             print("Connected to ProxySQL (%s)" % self.version)
         except:
-            print("ERROR: not possible to connect to ProxySQL admin interface !")
+            sys.tracebacklimit = 0
+            raise Exception("Not possible to connect to ProxySQL admin interface !")
 
     def __format_bytes(self, size):
         # 2**10 = 1024
