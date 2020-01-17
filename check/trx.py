@@ -190,7 +190,7 @@ def show_trx_size(binlog=None, session=None):
           print_binlog = False
        if row[5].startswith('BEGIN'):
            start=row[1]
-       elif row[5].startswith('COMMIT '):
+       elif row[5].startswith('COMMIT'):
            print("%s" % _format_bytes(row[4]-start))
     return 
 
@@ -232,7 +232,7 @@ def show_trx_size_sort(limit=10,binlog=None, session=None):
           print_binlog = False
        if row[5].startswith('BEGIN'):
            start=row[1]
-       elif row[5].startswith('COMMIT '):
+       elif row[5].startswith('COMMIT'):
            list_binlogs.append(row[4]-start)
     list_binlogs.sort(reverse=True)
     del list_binlogs[limit:]
