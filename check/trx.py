@@ -368,7 +368,8 @@ def get_trx_most_rows(limit=1, schema=None, session=None):
                           join performance_schema.events_statements_history_long s         
                             on t.thread_id = s.thread_id 
                            and t.event_id = s.nesting_event_id where t.thread_id=%s
-                          """ % rows[0][0]
+                           and t.event_id = %s
+                          """ % ( rows[0][0], rows[0][1] )
                 result = session.run_sql(stmt)
                 stmts = result.fetch_all()
                 i=1
