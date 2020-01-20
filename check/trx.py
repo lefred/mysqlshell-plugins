@@ -265,6 +265,7 @@ def get_trx_most_stmt(limit=1, schema=None, session=None):
                     case when s.event_name = "statement/sql/update" then 1 
                          when s.event_name = "statement/sql/insert" then 1 
                          when s.event_name = "statement/sql/delete" then 1 
+                         when s.event_name = "statement/sql/replace" then 1
                          else null end),',','')) 
                     as "# write statements" 
                   from performance_schema.events_transactions_history_long t 
@@ -349,6 +350,7 @@ def get_trx_most_rows(limit=1, schema=None, session=None):
                         when s.event_name = "statement/sql/update" then 1 
                         when s.event_name = "statement/sql/insert" then 1 
                         when s.event_name = "statement/sql/delete" then 1 
+                        when s.event_name = "statement/sql/replace" then 1
                         else null end),',','')) as "# write statements" 
                   from performance_schema.events_transactions_history_long t 
                   join performance_schema.events_statements_history_long s 
