@@ -94,7 +94,7 @@ def show_speed(limit=10,session=None):
     for i in range(limit):
             out = ""
             for secondary in secondaries:
-               stmt = """SELECT if(LAST_APPLIED_TRANSACTION, LAST_APPLIED_TRANSACTION, "0:none") LAST_APPLIED_TRANSACTION, 
+               stmt = """SELECT if(length(LAST_APPLIED_TRANSACTION) > 0, LAST_APPLIED_TRANSACTION, "0:none") LAST_APPLIED_TRANSACTION, 
                          LAST_QUEUED_TRANSACTION, LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP - 
 	                    LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP 'rep delay (sec)', 
                          LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP - 
