@@ -54,13 +54,13 @@ This will clone the repository and copy the files to the right path in order to 
 ### macOS / Linux
 ```
 $ mkdir -p ~/.mysqlsh/plugins
-$ git clone https://github.com/mzinner/mysql-shell-ex.git ~/.mysqlsh/plugins/ext
+$ git clone https://github.com/lefred/mysqlshell-plugins.git ~/.mysqlsh/plugins/ext
 ```
 
 ### Windows
 ```
-$ mkdir %AppData%MySQL\mysqlsh\plugins
-$ git clone https://github.com/mzinner/mysql-shell-ex.git %AppData%MySQL\mysqlsh\plugins\ext
+$ mkdir %AppData%\MySQL\mysqlsh\plugins
+$ git clone https://github.com/lefred/mysqlshell-plugins.git %AppData%\MySQL\mysqlsh\plugins\ext
 ```
 
 ## Extending the MySQL Shell
