@@ -1,6 +1,7 @@
 from ext.mysqlsh_plugins_common import register_plugin
 from ext.check import trx
 from ext.check import queries
+from ext.check import locks
 
 
 register_plugin("showTrxSize", trx.show_trx_size,
@@ -320,4 +321,30 @@ register_plugin("getQueryUpdatingSamePK", queries.get_queries_updating_same_pk,
                  "A collection of Check management tools and utilities"
              ]
            }
-     )     
+     )  
+
+
+register_plugin("getLocks", locks.show_locks,
+           {"brief": "Prints the locks held by threads",
+             "parameters": [{
+                   "name": "limit",
+                   "brief": "The amount of query to return. Default is 1.",
+                   "type": "integer",
+                   "required": False
+                },{
+                   "name": "session",
+                   "brief": "The session to be used on the operation.",
+                   "type": "object",
+                   "classes": ["Session", "ClassicSession"],
+                   "required": False
+                }
+            ]
+           },
+           "check",
+           {
+             "brief": "Check management and utilities.",
+             "details": [
+                 "A collection of Check management tools and utilities"
+             ]
+           }
+     )    
