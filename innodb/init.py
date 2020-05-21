@@ -63,6 +63,11 @@ register_plugin("getFragmentedTablesDisk", fragmented.get_fragmented_tables_disk
 register_plugin("getAlterProgress", progress.get_alter_progress,
            {"brief": "Prints InnoDB Alter progress info",
              "parameters": [{
+                "name": "format",
+                "brief": "Output format (default is table)",
+                "type": "string",
+                "required": False
+             },{
                 "name": "session",
                 "brief": "The session to be used on the operation.",
                 "type": "object",

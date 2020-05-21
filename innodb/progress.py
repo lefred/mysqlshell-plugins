@@ -55,7 +55,7 @@ Do you want to enabled them now ? (y/N) """
 
 
 
-def get_alter_progress(session=None):
+def get_alter_progress(format='table', session=None):
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell
@@ -86,5 +86,5 @@ def get_alter_progress(session=None):
                     ON stage.THREAD_ID = stmt.THREAD_ID"""
     
     result = session.run_sql(stmt)
-    shell.dump_rows(result)
+    shell.dump_rows(result, format)
     return
