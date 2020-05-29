@@ -100,7 +100,7 @@ def show_locks(limit=10, session=None):
         print("Data Locks:")
         print("-----------")
         stmt = """SELECT CONCAT(OBJECT_SCHEMA,'.', OBJECT_NAME) as `TABLE`, LOCK_TYPE, 
-                         LOCK_MODE, LOCK_STATUS FROM sys.processlist p 
+                         LOCK_MODE, LOCK_STATUS, INDEX_NAME FROM sys.processlist p 
                          JOIN performance_schema.data_locks d 
                          ON d.thread_id = p.thd_id
                          WHERE conn_id = %s""" % answer
@@ -108,7 +108,7 @@ def show_locks(limit=10, session=None):
         rows = result.fetch_all()
         if len(rows) > 0:
             for row in rows:
-                print("{} {} ({}) LOCK on {}".format(row[3], row[1], row[2], row[0])) 
+                print("{} {} ({}) LOCK on {} ({})".format(row[3], row[1], row[2], row[0], row[4])) 
         else:
             print("None")
 
