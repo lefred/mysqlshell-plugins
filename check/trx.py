@@ -490,6 +490,10 @@ def get_statements_running(limit=10, session=None):
         result = session.run_sql(stmt)
         columns = result.get_column_names()
         rows = result.fetch_all()
-        for row in rows:
-            print(row[0])
+        if len(rows) > 0:
+            for row in rows:
+                if row[0] != None:
+                    print(row[0])
+        else:
+            print("Everything has been committed")
     return
