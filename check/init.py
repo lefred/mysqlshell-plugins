@@ -328,7 +328,7 @@ register_plugin("getLocks", locks.show_locks,
            {"brief": "Prints the locks held by threads",
              "parameters": [{
                    "name": "limit",
-                   "brief": "The amount of query to return. Default is 1.",
+                   "brief": "The amount of query to return. Default is 10.",
                    "type": "integer",
                    "required": False
                 },{
@@ -347,4 +347,29 @@ register_plugin("getLocks", locks.show_locks,
                  "A collection of Check management tools and utilities"
              ]
            }
-     )    
+     )   
+
+register_plugin("getRunningStatements", trx.get_statements_running,
+           {"brief": "Prints the statements in one running transaction identified by thread ID",
+             "parameters": [{
+                   "name": "limit",
+                   "brief": "The amount of running thread to return. Default is 10.",
+                   "type": "integer",
+                   "required": False
+                },{
+                   "name": "session",
+                   "brief": "The session to be used on the operation.",
+                   "type": "object",
+                   "classes": ["Session", "ClassicSession"],
+                   "required": False
+                }
+            ]
+           },
+           "check",
+           {
+             "brief": "Check management and utilities.",
+             "details": [
+                 "A collection of Check management tools and utilities"
+             ]
+           }
+     )          

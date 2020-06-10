@@ -2,6 +2,9 @@
 # -----------------
 # Definition of member functions for the check extension object to display trx info
 #
+from ext.mysqlsh_plugins_common import is_consumer_enabled
+from ext.mysqlsh_plugins_common import are_instruments_enabled
+
 
 def _returnBinlogEvents(session, binlog):
     stmt = "SHOW BINLOG EVENTS in '%s'" % binlog
@@ -406,4 +409,87 @@ def get_trx_most_rows(limit=1, schema=None, session=None):
                 else:
                     print("%s is not part of the thread_id returned or is not valid!" % answer)
         
+    return
+
+def get_statements_running(limit=10, session=None):
+    # Get hold of the global shell object
+    import mysqlsh
+    shell = mysqlsh.globals.shell
+
+    if session is None:
+        session = shell.get_session()
+        if session is None:
+            print("No session specified. Either pass a session object to this "
+                  "function or connect the shell to a database")
+            return
+    if not are_instruments_enabled("transaction%", session, shell):
+        print("Aborting, instruments are not enabled")
+        return    
+    if not is_consumer_enabled("events_statements_current", session, shell):
+        print("Aborting, the consumer is not enabled")
+        return
+    if not is_consumer_enabled("events_statements_history", session, shell):
+        print("Aborting, the consumer is not enabled")
+        return
+    if not is_consumer_enabled("events_transaction_current", session, shell):
+        print("Aborting, the consumer is not enabled")
+        return
+
+    stmt = """SELECT thr.processlist_id AS mysql_thread_id, 
+                     concat(PROCESSLIST_USER,'@',PROCESSLIST_HOST) User, 
+                     Command, FORMAT_PICO_TIME(trx.timer_wait) AS trx_duration,
+                     current_statement as `latest_statement`
+              FROM performance_schema.events_transactions_current trx
+              INNER JOIN performance_schema.threads thr USING (thread_id)               
+              LEFT JOIN sys.processlist p on p.thd_id=thread_id
+              WHERE thr.processlist_id IS NOT NULL and PROCESSLIST_USER IS NOT NULL
+              GROUP BY thread_id, timer_wait ORDER BY TIMER_WAIT DESC
+              LIMIT %d""" % (limit)
+
+    result = session.run_sql(stmt)
+    columns = result.get_column_names()
+    rows = result.fetch_all()
+    max_length=[]
+    for i in range(5): 
+      if len(columns[i]) > max(len(str(x[i])) for x in rows):
+          max_length.append(len(columns[i]))
+      else:
+          max_length.append(max(len(str(x[i])) for x in rows))
+    
+    line = "+-" + max_length[0]*"-" + "-+-" + max_length[1]*"-" + "-+-" + \
+           max_length[2]*"-" + "-+-" + max_length[3]*"-" + "-+-" + max_length[4]*"-" + "-+" 
+
+    print(line)
+    print("| {:{}} | {:{}} | {:{}} | {:{}} | {:{}} |".\
+            format(columns[0], max_length[0],\
+                columns[1], max_length[1],\
+                columns[2], max_length[2],\
+                columns[3], max_length[3],\
+                columns[4], max_length[4]))
+
+    print(line)
+    events=[]
+    for row in rows:
+        events.append(row[0])
+        print("| {:{}} | {:{}} | {:{}} | {:{}} | {:{}} |".\
+            format(row[0], max_length[0],\
+                row[1], max_length[1],\
+                str(row[2] or 'NULL'), max_length[2],\
+                str(row[3] or 'NULL'), max_length[3],\
+                str(row[4] or 'NULL'), max_length[4]))
+    print(line)
+    answer = shell.prompt("For which thread_id do you want to see all statements ? (%s) " %  events[0]
+                               , {'defaultValue': str(events[0])})
+    if int(answer) in events:    
+        stmt = """SELECT SQL_TEXT FROM performance_schema.events_statements_history  
+                   WHERE nesting_event_id=(
+                         SELECT EVENT_ID FROM performance_schema.events_transactions_current t   
+                                         LEFT JOIN sys.processlist p ON p.thd_id=t.thread_id  
+                                WHERE conn_id={}) 
+                         ORDER BY event_id""".format(answer)
+        result = session.run_sql(stmt)
+        columns = result.get_column_names()
+        rows = result.fetch_all()
+        for row in rows:
+            print(row[0])
     return
