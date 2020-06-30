@@ -478,8 +478,14 @@ def get_statements_running(limit=10, session=None):
                 str(row[3] or 'NULL'), max_length[3],\
                 str(row[4] or 'NULL'), max_length[4]))
     print(line)
-    answer = shell.prompt("For which thread_id do you want to see all statements ? (%s) " %  events[0]
+    stmt = """SELECT variable_value FROM performance_schema.global_variables 
+              WHERE variable_name='performance_schema_events_statements_history_size'"""
+    result = session.run_sql(stmt)
+    history_size = result.fetch_one()[0]
+
+    answer = shell.prompt("For which thread_id do you want to see the statements ? (%s) " %  events[0]
                                , {'defaultValue': str(events[0])})
+    print("Info: amount of returned statements is limited by performance_schema_events_statements_history_size = {}".format(history_size))                               
     if int(answer) in events:    
         stmt = """SELECT SQL_TEXT FROM performance_schema.events_statements_history  
                    WHERE nesting_event_id=(
