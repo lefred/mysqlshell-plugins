@@ -79,11 +79,6 @@ register_plugin("outOfOrder", outoforder_src.out_of_order,
                         "required":False}
                     ]
                 },
-                "collations",
-                {
-                    "brief": "Collation utilities.",
-                    "details": [
-                        "A collection of collation utilites"
-                    ]
-                })
+                "collations"
+                )
 

@@ -64,14 +64,8 @@ register_plugin("showDefaults", schema_defaults.show_defaults,
                         "required":False}
                     ]
                 },
-                "schema",
-                {
-                    "brief": "Schema management and utilities.",
-                    "details": [
-                        "A collection of schema management tools and related "
-                        "utilities that work on schemas"
-                    ]
-                })
+                "schema"
+                )
 
 register_plugin("deleteProcedures", schema_delproc.delete_procedures,
     {

@@ -50,14 +50,7 @@ register_plugin("getFragmentedTablesDisk", fragmented.get_fragmented_tables_disk
             }
             ]
            },
-           "innodb",
-           {
-             "brief": "InnoDB management and utilities.",
-             "details": [
-                 "A collection of InnoDB management tools and related "
-                 "utilities that work on InnoDB Engine"
-             ]
-           }
+           "innodb"
      )
 
 register_plugin("getAlterProgress", progress.get_alter_progress,
@@ -76,14 +69,7 @@ register_plugin("getAlterProgress", progress.get_alter_progress,
             }
             ]
            },
-           "innodb",
-           {
-             "brief": "InnoDB management and utilities.",
-             "details": [
-                 "A collection of InnoDB management tools and related "
-                 "utilities that work on InnoDB Engine"
-             ]
-           }
+           "innodb"
      )
 
 register_plugin("getTablesInBP", bufferpool.get_tables_in_bp,
@@ -97,12 +83,5 @@ register_plugin("getTablesInBP", bufferpool.get_tables_in_bp,
             }
             ]
            },
-           "innodb",
-           {
-             "brief": "InnoDB management and utilities.",
-             "details": [
-                 "A collection of InnoDB management tools and related "
-                 "utilities that work on InnoDB Engine"
-             ]
-           }
+           "innodb"
      )
