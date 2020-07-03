@@ -126,7 +126,7 @@ Do you want to enabled them now ? (y/N) """
     
     return ok
 
-def run_and_show(stmt, session=None):
+def run_and_show(stmt, format='table',session=None):
     import mysqlsh
     shell = mysqlsh.globals.shell
 
@@ -138,5 +138,5 @@ def run_and_show(stmt, session=None):
             return
 
     result = session.run_sql(stmt)
-    shell.dump_rows(result)
+    shell.dump_rows(result, format)
     return
