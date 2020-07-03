@@ -125,3 +125,18 @@ Do you want to enabled them now ? (y/N) """
         ok = True
     
     return ok
+
+def run_and_show(stmt, session=None):
+    import mysqlsh
+    shell = mysqlsh.globals.shell
+
+    if session is None:
+        session = shell.get_session()
+        if session is None:
+            print("No session specified. Either pass a session object to this "
+                  "function or connect the shell to a database")
+            return
+
+    result = session.run_sql(stmt)
+    shell.dump_rows(result)
+    return

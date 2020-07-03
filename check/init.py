@@ -2,6 +2,8 @@ from ext.mysqlsh_plugins_common import register_plugin
 from ext.check import trx
 from ext.check import queries
 from ext.check import locks
+from ext.check import schema
+from ext.check import other
 
 
 register_plugin("showTrxSize", trx.show_trx_size,
@@ -50,13 +52,7 @@ register_plugin("showTrxSizeSort", trx.show_trx_size_sort,
             }
             ]
            },
-           "check",
-           {
-             "brief": "Check management and utilities.",
-             "details": [
-                 "A collection of Check management tools and utilities"
-             ]
-           }
+           "check"
      )
 
 register_plugin("getBinlogs", trx.show_binlogs,
@@ -70,13 +66,7 @@ register_plugin("getBinlogs", trx.show_binlogs,
             }
             ]
            },
-           "check",
-           {
-             "brief": "Check management and utilities.",
-             "details": [
-                 "A collection of Check management tools and utilities"
-             ]
-           }
+           "check"
      )
 
 register_plugin("getBinlogsIO", trx.show_binlogs_io,
@@ -90,13 +80,7 @@ register_plugin("getBinlogsIO", trx.show_binlogs_io,
             }
             ]
            },
-           "check",
-           {
-             "brief": "Check management and utilities.",
-             "details": [
-                 "A collection of Check management tools and utilities"
-             ]
-           }
+           "check"
      )
 
 register_plugin("getTrxWithMostStatements", trx.get_trx_most_stmt,
@@ -120,13 +104,7 @@ register_plugin("getTrxWithMostStatements", trx.get_trx_most_stmt,
                 }
             ]
            },
-           "check",
-           {
-             "brief": "Check management and utilities.",
-             "details": [
-                 "A collection of Check management tools and utilities"
-             ]
-           }
+           "check"
      )
 
 register_plugin("getTrxWithMostRowsAffected", trx.get_trx_most_rows,
@@ -150,13 +128,7 @@ register_plugin("getTrxWithMostRowsAffected", trx.get_trx_most_rows,
                 }
             ]
            },
-           "check",
-           {
-             "brief": "Check management and utilities.",
-             "details": [
-                 "A collection of Check management tools and utilities"
-             ]
-           }
+           "check"
      )
      
 
@@ -178,22 +150,16 @@ register_plugin("getSlowerQuery", queries.get_queries_95_perc,
                    "brief": "The name of the schema to look at.",
                    "type": "string",
                    "required": False
-#                },{
-#                   "name": "session",
-#                   "brief": "The session to be used on the operation.",
-#                   "type": "object",
-#                   "classes": ["Session", "ClassicSession"],
-#                   "required": False
+                },{
+                   "name": "session",
+                   "brief": "The session to be used on the operation.",
+                   "type": "object",
+                   "classes": ["Session", "ClassicSession"],
+                   "required": False
                 }
             ]
            },
-           "check",
-           {
-             "brief": "Check management and utilities.",
-             "details": [
-                 "A collection of Check management tools and utilities"
-             ]
-           }
+           "check"
      )
 
 
@@ -218,13 +184,7 @@ register_plugin("getQueryTempDisk", queries.get_queries_temp_disk,
                 }
             ]
            },
-           "check",
-           {
-             "brief": "Check management and utilities.",
-             "details": [
-                 "A collection of Check management tools and utilities"
-             ]
-           }
+           "check"
      )
 
 
@@ -254,13 +214,7 @@ register_plugin("getFullTableScanQuery", queries.get_queries_ft_scan,
                 }
             ]
            },
-           "check",
-           {
-             "brief": "Check management and utilities.",
-             "details": [
-                 "A collection of Check management tools and utilities"
-             ]
-           }
+           "check"
      )
 
 register_plugin("getQueryMostRowAffected", queries.get_queries_most_rows_affected,
@@ -284,13 +238,7 @@ register_plugin("getQueryMostRowAffected", queries.get_queries_most_rows_affecte
                 }
             ]
            },
-           "check",
-           {
-             "brief": "Check management and utilities.",
-             "details": [
-                 "A collection of Check management tools and utilities"
-             ]
-           }
+           "check"
      )
 
 register_plugin("getQueryUpdatingSamePK", queries.get_queries_updating_same_pk,
@@ -314,13 +262,7 @@ register_plugin("getQueryUpdatingSamePK", queries.get_queries_updating_same_pk,
                 }
             ]
            },
-           "check",
-           {
-             "brief": "Check management and utilities.",
-             "details": [
-                 "A collection of Check management tools and utilities"
-             ]
-           }
+           "check"
      )  
 
 
@@ -340,13 +282,7 @@ register_plugin("getLocks", locks.show_locks,
                 }
             ]
            },
-           "check",
-           {
-             "brief": "Check management and utilities.",
-             "details": [
-                 "A collection of Check management tools and utilities"
-             ]
-           }
+           "check"
      )   
 
 register_plugin("getRunningStatements", trx.get_statements_running,
@@ -365,11 +301,61 @@ register_plugin("getRunningStatements", trx.get_statements_running,
                 }
             ]
            },
-           "check",
-           {
-             "brief": "Check management and utilities.",
-             "details": [
-                 "A collection of Check management tools and utilities"
-             ]
-           }
+           "check"
      )          
+
+register_plugin("getNonInnoDBTables", schema.get_noninnodb_tables,
+           {"brief": "Prints all tables not using InnoDB Storage Engine",
+             "parameters": [{
+                   "name": "session",
+                   "brief": "The session to be used on the operation.",
+                   "type": "object",
+                   "classes": ["Session", "ClassicSession"],
+                   "required": False
+                }
+            ]
+           },
+           "check"
+     )   
+
+register_plugin("getInnoDBTablesWithNoPK", schema.get_innodb_with_nopk,
+           {"brief": "Prints all InnoDB tables not habing a Primary Key or a non NULL unique key",
+             "parameters": [{
+                   "name": "session",
+                   "brief": "The session to be used on the operation.",
+                   "type": "object",
+                   "classes": ["Session", "ClassicSession"],
+                   "required": False
+                }
+            ]
+           },
+           "check"
+     )
+
+register_plugin("getCascadingFK", schema.get_cascading_fk,
+           {"brief": "Prints all foreign keys with cascading constraints",
+             "parameters": [{
+                   "name": "session",
+                   "brief": "The session to be used on the operation.",
+                   "type": "object",
+                   "classes": ["Session", "ClassicSession"],
+                   "required": False
+                }
+            ]
+           },
+           "check"
+     ) 
+
+register_plugin("getAmountDDL", other.get_amount_ddl,
+           {"brief": "Prints a summary of the amount of DDL statements performed since server start",
+             "parameters": [{
+                   "name": "session",
+                   "brief": "The session to be used on the operation.",
+                   "type": "object",
+                   "classes": ["Session", "ClassicSession"],
+                   "required": False
+                }
+            ]
+           },
+           "check"
+     )       
