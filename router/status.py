@@ -1,21 +1,23 @@
-import sys
-try:
-    import json
-except:
-    print("Error importing module json, check if it's installed")
-    sys.exit(1)
+import importlib
+from importlib import util
+import json
 
-try: 
+requests_spec =  util.find_spec("requests")
+found_requests = requests_spec is not None
+
+if found_requests:
     import requests
-except:
-    print("Error importing module requests, check if it's installed")
-    sys.exit(1)
+
 
 api_ver = "20190715"
 
 def __router_call(route, router_ip, router_port, user, password):
     url = "http://" + router_ip + ":" + str(router_port) + "/api/" + api_ver + route
-    resp = requests.get(url,auth=(user, password))
+    if found_requests:
+       resp = requests.get(url,auth=(user, password))
+    else:
+       print("ERROR: This module cannot be used, missing module 'requests'")
+       return False
     if resp.status_code == 200:
         return resp
     else:

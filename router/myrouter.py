@@ -1,14 +1,15 @@
 import sys
-try:
-    import json
-except:
-    print("Error importing module json, check if it's installed")
-    sys.exit(1)
-try:
+import importlib
+from importlib import util
+import json
+requests_spec =  util.find_spec("requests")
+found_requests = requests_spec is not None
+
+if found_requests:
     import requests
-except:
-    print("Error importing module requests, check if it's installed")
-    sys.exit(1)
+else:
+    print("Error importing module 'requests', check if it's installed (Python {}.{}.{})".format(
+           sys.version_info[0], sys.version_info[1], sys.version_info[2]))
 
 import mysqlsh
 shell = mysqlsh.globals.shell
@@ -38,7 +39,11 @@ class MyRouter:
 
         url = "http://" + self.ip + ":" + self.port + "/api/" + self.api + route
         try:
-            resp = requests.get(url,auth=(self.user,self.__password))
+            if found_requests:
+                resp = requests.get(url,auth=(self.user,self.__password))
+            else:
+                print("ERROR: This module cannot be used, missing module 'requests'")
+                return False
         except:
             print("ERROR: Impossible to connect to the MySQL Router REST API")
             return False
