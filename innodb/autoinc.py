@@ -21,9 +21,14 @@ def get_autoinc_fill(percentage=50, schema=None, session=None):
        for stat in stats:
            if int(stat[0]) > 0:
                print ("Warning: information_schema_stats_expiry is set to {0}.".format(*stat))
-               answer = shell.prompt("""Do you want to change it ? (y/N) """
-                              , {'defaultValue':'n'})
-               if answer.lower() == 'y':
+               if shell.options.interactive:
+                  answer = shell.prompt("""Do you want to change it ? (y/N) """
+                                 , {'defaultValue':'n'})
+                  if answer.lower() == 'y':
+                    stmt = """SET information_schema_stats_expiry=0"""
+                    result = session.run_sql(stmt)
+               else:
+                    print("Changing information_schema_stats_expiry to 0 for this session only")
                     stmt = """SET information_schema_stats_expiry=0"""
                     result = session.run_sql(stmt)
 
