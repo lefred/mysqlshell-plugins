@@ -80,44 +80,43 @@ def show_speed(limit=10,session=None):
     head2 = ""
     for secondary in secondaries:
         secondary_sessions[secondary] = _connect_to_secondary(shell, session, secondary)
-    head0 = "		SeqNo				SeqNo							"
-    head1 = "		Last				Last		transport	time to				"
-    head2 = "Host		ApplyTx		repl delay	QueueTx		time		RelayLog	apply time	"
-    print("=" * 106)
+    head0 = "		SeqNo     SeqNo							"
+    head1 = "		Last      Last		        transport       time to		                Lag"
+    head2 = "Host		QueueTx   ApplyTx  repl delay	time            RelayLog	apply time	in sec"
+    print("=" * 102)
     print("MySQL InnoDB Cluster : Group Replication Information")
-    print("=" * 106)
+    print("=" * 102)
     print(head0)
     print(head1)
     print(head2)
-    print("-" * 106)
+    print("-" * 102)
     
     for i in range(limit):
             out = ""
             for secondary in secondaries:
-               stmt = """SELECT if(length(LAST_APPLIED_TRANSACTION) > 0, LAST_APPLIED_TRANSACTION, "0:none") LAST_APPLIED_TRANSACTION, 
-                         LAST_QUEUED_TRANSACTION, LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP - 
-	                    LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP 'rep delay (sec)', 
-                         LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP - 
-                            LAST_QUEUED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP 'transport time', 
-                         LAST_QUEUED_TRANSACTION_END_QUEUE_TIMESTAMP - 
-                            LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP 'time RL',
-                         LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP - 
-                            LAST_APPLIED_TRANSACTION_START_APPLY_TIMESTAMP 'apply time'
-                         FROM performance_schema.replication_applier_status_by_worker t1 
-                         JOIN performance_schema.replication_connection_status t2 
-                           ON t2.channel_name=t1.channel_name  
-                        WHERE t1.channel_name='group_replication_applier'"""
+               stmt = """SELECT
+                        conn_status.LAST_QUEUED_TRANSACTION as last_queued_transaction,
+                        applier_status.LAST_APPLIED_TRANSACTION as last_applied_transaction,
+                        if(LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP = 0, 0,
+                           LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP -
+                            LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP) 'rep delay (sec)',
+                        LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP -
+                           LAST_QUEUED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP 'transport time',
+                           LAST_QUEUED_TRANSACTION_END_QUEUE_TIMESTAMP -
+                           LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP 'time RL',
+                        LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP -
+                           LAST_APPLIED_TRANSACTION_START_APPLY_TIMESTAMP 'apply time',
+                        if(GTID_SUBTRACT(LAST_QUEUED_TRANSACTION, LAST_APPLIED_TRANSACTION) = "","0" ,
+                        abs(time_to_sec(if(time_to_sec(APPLYING_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP)=0,0,
+                           timediff(APPLYING_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP,now())))))`lag`
+                        FROM
+                           performance_schema.replication_connection_status AS conn_status
+                           JOIN performance_schema.replication_applier_status_by_worker AS applier_status
+                           ON applier_status.channel_name = conn_status.channel_name
+                           WHERE conn_status.channel_name='group_replication_applier'"""
                result = secondary_sessions[secondary].run_sql(stmt)
-               row = result.fetch_one()
-               if int(row[2].split('.')[0]) > 2019111308000:
-                    delay_time="n/a	"
-               else:
-                    delay_time=row[2]
-               if int(row[3].split('.')[0]) > 2019111308000:
-                    trans_time="n/a	"
-               else:
-                    trans_time=row[3]
-               out = "%s	%s		%s	%s		%s	%s	%s	" % (secondary, row[0].split(':')[1], delay_time, row[1].split(':')[1], trans_time, row[4], row[5]) 
+               row = result.fetch_one()              
+               out = "%s	%s       %s       %s	%s	%s	%s	%s" % (secondary, row[0].split(':')[1], row[1].split(':')[1], row[2], row[3], row[4], row[5], row[6]) 
                print(out) 
             print(" ")
             time.sleep(1)

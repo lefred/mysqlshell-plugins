@@ -3,7 +3,7 @@ from ext.innodb_cluster import secondary
 
 
 register_plugin("showGroupReplicationSpeed", secondary.show_speed,
-           {"brief": "Prints Transactions Size from a binlog",
+           {"brief": "Prints replication information speed information",
              "parameters": [{
                 "name": "limit",
                 "brief": "For how many seconds the output show be displayed, refreshed every second and default is 10",
