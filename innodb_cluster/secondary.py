@@ -44,8 +44,9 @@ def _connect_to_secondary(shell, session, secondary):
     
     #print("Using %s to connect to secondary..." % uri)
     #_check_session_cred(shell, uri)
-    password = shell.prompt('Please enter password for %s: ' % uri, {'type': 'password'})
-    session2 = mysql.get_session(uri, password)
+    #password = shell.prompt('Please enter password for %s: ' % uri, {'type': 'password'})
+    #session2 = mysql.get_session(uri, password)
+    session2 = shell.open_session(uri)
     return session2
 
 def _get_cluster_mode(session, dba):
