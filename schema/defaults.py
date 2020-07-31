@@ -93,14 +93,14 @@ def show_defaults(table, schema=None, session=None):
         if col_expr is None:
             col_expr = 'NULL'
         else:
-            col_expr = col_expr.replace('\\', '')
+            col_expr = col_expr.replace('\\', '')            
         query = session.run_sql("select {0}".format(col_expr))
         if col_expr == 'NULL':
             ex_str = col_expr
         else:
             try:
-                example = query.execute()
-                for col in example.fetch_all():
+                #example = query.execute()
+                for col in query.fetch_all():
                     ex_str = str(col[0])
             except:
                 ex_str = row[2]
