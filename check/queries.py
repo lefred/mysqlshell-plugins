@@ -1,8 +1,6 @@
 from ext.mysqlsh_plugins_common import run_and_show
 
-def _get_full_details(session, original_query, schema):
-       import mysqlsh
-       shell = mysqlsh.globals.shell
+def _get_full_details(shell, session, original_query, schema):
        old_schema=None
        if session.get_current_schema() is None: 
            old_schema=None
@@ -65,7 +63,7 @@ def get_queries_95_perc(limit=1, select=False, schema=None, session=None):
        row = result.fetch_one()
        if row:
           original_query = row[6]
-          _get_full_details(session, original_query, row[0])
+          _get_full_details(shell, session, original_query, row[0])
 
 def get_queries_ft_scan(limit=1, select=False, schema=None, session=None):
 
@@ -108,7 +106,6 @@ def get_queries_ft_scan(limit=1, select=False, schema=None, session=None):
           _get_full_details(shell, session, original_query, row[0])
 
 def get_queries_temp_disk(limit=1, schema=None, session=None):
-
     import mysqlsh
     shell = mysqlsh.globals.shell
 
@@ -143,7 +140,7 @@ def get_queries_temp_disk(limit=1, schema=None, session=None):
        row = result.fetch_one()
        if row:
           original_query = row[6]
-          _get_full_details(shell, session, original_query)
+          _get_full_details(shell, session, original_query, schema)
 
 def get_queries_most_rows_affected(limit=1, schema=None, session=None):
 

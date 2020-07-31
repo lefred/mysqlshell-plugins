@@ -274,7 +274,7 @@ def get_trx_most_stmt(limit=1, schema=None, session=None):
                   from performance_schema.events_transactions_history_long t 
                   join performance_schema.events_statements_history_long s 
                     on t.thread_id = s.thread_id and t.event_id = s.nesting_event_id %s
-                  group by t.thread_id, t.event_id order by rows_affected desc
+                  group by t.thread_id, t.event_id order by 3 desc
                   LIMIT %d""" % (filter, limit)
 
         result = session.run_sql(stmt)
