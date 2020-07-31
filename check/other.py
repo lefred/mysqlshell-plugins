@@ -8,4 +8,4 @@ def get_amount_ddl(session=None):
                 AND event_name NOT REGEXP '.*user'
                 AND count_star > 0;"""
 
-    run_and_show(stmt, session)
+    run_and_show(stmt, "table", session)
