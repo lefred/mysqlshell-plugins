@@ -9,7 +9,7 @@ def get_noninnodb_tables(session=None):
               AND table_schema NOT IN 
                ('information_schema', 'mysql', 'performance_schema');"""
     
-    run_and_show(stmt, session)
+    run_and_show(stmt, "table", session)
 
 def get_innodb_with_nopk(session=None):
 
@@ -25,7 +25,7 @@ def get_innodb_with_nopk(session=None):
               WHERE puks.table_name is null 
               AND tables.table_type = 'BASE TABLE' AND Engine="InnoDB";"""
 
-    run_and_show(stmt, session)
+    run_and_show(stmt, "table", session)
 
 def get_cascading_fk(session=None):
 
@@ -38,4 +38,4 @@ def get_cascading_fk(session=None):
                AND t1.referenced_table_name IS NOT NULL 
                AND (DELETE_RULE = "CASCADE" OR UPDATE_RULE = "CASCADE");"""
 
-    run_and_show(stmt, session)
+    run_and_show(stmt, "table", session)
