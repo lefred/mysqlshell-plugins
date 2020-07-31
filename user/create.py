@@ -3,7 +3,7 @@
 # Definition of functions for create users for our Junior DBA
 #
 
-def create_user(session=None):
+def create_user(verbose=False, session=None):
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell
@@ -30,8 +30,8 @@ def create_user(session=None):
     if user_failed.upper() == "Y":
         stmt = stmt + "FAILED_LOGIN_ATTEMPTS 3 PASSWORD_LOCK_TIME 2"
         
-    # just for DEBUG ;-)    
-    print("DEBUG: {}".format(stmt))       
+    if verbose:
+       print("--> {}".format(stmt))       
     
     result = session.run_sql(stmt)
     shell.dump_rows(result)

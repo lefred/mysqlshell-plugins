@@ -5,6 +5,12 @@ from ext.user import create
 register_plugin("create", create.create_user,
            {"brief": "Wizard to create a user",
              "parameters": [{
+                "name": "verbose",
+                "brief": "Show the generated create statement.",
+                "type": "bool",
+                "required": False
+            },
+            {
                 "name": "session",
                 "brief": "The session to be used on the operation.",
                 "type": "object",

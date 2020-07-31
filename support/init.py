@@ -20,7 +20,7 @@ register_plugin("fetchInfo", fetch.get_fetch_info,
                 "required": False
              },{
                 "name": "advices",
-                "brief": "Print eventual advices",
+                "brief": "Print eventual advices. This is disabled by default",
                 "type": "bool",
                 "required": False
              },{
