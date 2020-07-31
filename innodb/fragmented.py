@@ -8,13 +8,23 @@ def get_fragmented_tables(percentage=10, session=None):
             print("No session specified. Either pass a session object to this "
                 "function or connect the shell to a database")
             return
-    stmt = "select variable_value from performance_schema.global_variables where variable_name='information_schema_stats_expiry';"
+    stmt = "select @@information_schema_stats_expiry;"
     result = session.run_sql(stmt)
     stats = result.fetch_all()
     if len(stats) > 0:
        for stat in stats:
            if int(stat[0]) > 0:
                print ("Warning: information_schema_stats_expiry is set to {0}.".format(*stat))
+               if shell.options.interactive:
+                  answer = shell.prompt("""Do you want to change it ? (y/N) """
+                                 , {'defaultValue':'n'})
+                  if answer.lower() == 'y':
+                    stmt = """SET information_schema_stats_expiry=0"""
+                    result = session.run_sql(stmt)
+               else:
+                    print("Changing information_schema_stats_expiry to 0 for this session only")
+                    stmt = """SET information_schema_stats_expiry=0"""
+                    result = session.run_sql(stmt)
     stmt = """SELECT CONCAT(table_schema, '.', table_name) as 'TABLE', 
        ENGINE, CONCAT(ROUND(table_rows / 1000000, 2), 'M') `ROWS`, 
        CONCAT(ROUND(data_length / ( 1024 * 1024 * 1024 ), 2), 'G') DATA, 
@@ -43,13 +53,23 @@ def get_fragmented_tables_disk(percentage=10, session=None):
             print("No session specified. Either pass a session object to this "
                 "function or connect the shell to a database")
             return
-    stmt = "select variable_value from performance_schema.global_variables where variable_name='information_schema_stats_expiry';"
+    stmt = "select @@information_schema_stats_expiry;"
     result = session.run_sql(stmt)
     stats = result.fetch_all()
     if len(stats) > 0:
        for stat in stats:
            if int(stat[0]) > 0:
                print ("Warning: information_schema_stats_expiry is set to {0}.".format(*stat))
+               if shell.options.interactive:
+                  answer = shell.prompt("""Do you want to change it ? (y/N) """
+                                 , {'defaultValue':'n'})
+                  if answer.lower() == 'y':
+                    stmt = """SET information_schema_stats_expiry=0"""
+                    result = session.run_sql(stmt)
+               else:
+                    print("Changing information_schema_stats_expiry to 0 for this session only")
+                    stmt = """SET information_schema_stats_expiry=0"""
+                    result = session.run_sql(stmt)        
     stmt = """SELECT name NAME ,table_rows `ROWS`, format_bytes(data_length) DATA_SIZE, 
                      format_bytes(index_length) INDEX_SIZE, 
                      format_bytes(data_length+index_length) TOTAL_SIZE,        
