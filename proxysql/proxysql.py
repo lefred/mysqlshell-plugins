@@ -71,6 +71,7 @@ class ProxySQL:
 
     def __return_mysql_users(self,session,search):
         stmt = """select User, authentication_string from mysql.user where user like '%s' 
+                         and plugin = 'mysql_native_password' 
                          and user not like 'mysql.%%' 
                          and user not like 'mysql_innodb_cluster_%%'""" % search
         result = session.run_sql(stmt)
@@ -108,6 +109,9 @@ class ProxySQL:
                   "function or connect the shell to a member of an InnoDB Cluster")
             return
         self.members = self.__return_gr_members(session) 
+        if self.members is None:
+            print("ERROR: you need to be connected to a InnoDB Cluster")
+            return 
         for host in self.members:
             stmt = """REPLACE INTO mysql_servers(hostgroup_id,hostname,port) 
                       VALUES (1,'%s',%d);""" % (host['host'], host['port'])
@@ -273,7 +277,7 @@ class ProxySQL:
             stmt = "load mysql users to run"
             self.session.run_sql(stmt)
         else:
-            print("No user found!")
+            print("No user found! Only users using mysql_native_password can be loaded.")
         return
 
 

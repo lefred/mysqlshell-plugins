@@ -15,15 +15,15 @@ import mysqlsh
 shell = mysqlsh.globals.shell
 
 class MyRouter:
-    def __init__(self, ip, port, user, password=False):
-        self.user = user
-        self.ip = ip
-        self.port = str(port)
-        self.user = user
-        if not password:
+    def __init__(self,uri=False):
+        self.uri = uri
+        self.user = shell.parse_uri(self.uri)['user']
+        self.ip = shell.parse_uri(self.uri)['host']
+        self.port = shell.parse_uri(self.uri)['port'] 
+        if not "password" in shell.parse_uri(self.uri):
             self.__password = shell.prompt('Password: ',{'type': 'password'})
         else:
-            self.__password = password
+            self.__password = shell.parse_uri(self.uri)['password']
    
     def __format_bytes(self, size):
         # 2**10 = 1024
@@ -37,7 +37,7 @@ class MyRouter:
 
     def __router_call(self,route):
 
-        url = "http://" + self.ip + ":" + self.port + "/api/" + self.api + route
+        url = "http://" + self.ip + ":" + str(self.port) + "/api/" + self.api + route
         try:
             if found_requests:
                 resp = requests.get(url,auth=(self.user,self.__password))
@@ -58,9 +58,9 @@ class MyRouter:
         result = self.__router_call("/routes")
         if result: 
             result_json = json.loads(result.content)
-            fmt = "| {0:22s} | {1:18s} | {2:12s} | {3:>20s} | {4:>20s} | {5:27s} |"
+            fmt = "| {0:22s} | {1:22s} | {2:12s} | {3:>20s} | {4:>20s} | {5:27s} |"
             header = fmt.format("Route", "Source", "Destination", "From Server", "To Server", "Connection Started")
-            bar = "+" + "-" * 24 + "+" + "-" * 20 + "+" + "-" * 14 + "+" + "-" * 22 + "+" + "-" * 22 + "+" + "-" * 29 + "+"
+            bar = "+" + "-" * 24 + "+" + "-" * 24 + "+" + "-" * 14 + "+" + "-" * 22 + "+" + "-" * 22 + "+" + "-" * 29 + "+"
             print (bar)
             print (header)
             print (bar)
@@ -77,6 +77,7 @@ class MyRouter:
                                 route_name=""
                         else:
                                 print (fmt.format(route_name, " "," ", " ", " ",  " "))
+            print (bar)
 
                         
 

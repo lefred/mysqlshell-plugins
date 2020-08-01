@@ -27,7 +27,6 @@ else:
 def create(uri):
     my_proxy = ProxySQL(uri)
     return { 
-         'connections': lambda route_to_find="": my_proxy.connections(route_to_find), 
          'status': lambda loop=False: my_proxy.get_status(loop), 
          'configure': lambda: my_proxy.configure(),
          'hosts': lambda: my_proxy.get_hosts(),
