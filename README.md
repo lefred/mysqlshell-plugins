@@ -60,18 +60,16 @@ To install this demo on your machine type the following commands after you have 
 
 This will clone the repository and copy the files to the right path in order to be automatically loaded on MySQL Shell startup.
 
-**Note:** You can install this plugin collection into a separated folder if you'd like. For example: `.mysqlsh/plugins/ext`.
-
 ### macOS / Linux
 ```
 $ mkdir -p ~/.mysqlsh/plugins
-$ git clone https://github.com/lefred/mysqlshell-plugins.git ~/.mysqlsh/plugins/ext
+$ git clone https://github.com/lefred/mysqlshell-plugins.git ~/.mysqlsh/plugins
 ```
 
 ### Windows
 ```
 $ mkdir %AppData%\MySQL\mysqlsh\plugins
-$ git clone https://github.com/lefred/mysqlshell-plugins.git %AppData%\MySQL\mysqlsh\plugins\ext
+$ git clone https://github.com/lefred/mysqlshell-plugins.git %AppData%\MySQL\mysqlsh\plugins
 ```
 
 ## Extending the MySQL Shell
