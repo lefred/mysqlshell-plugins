@@ -1,7 +1,19 @@
-from ext.mysqlsh_plugins_common import run_and_show
+from mysqlsh.plugin_manager import plugin, plugin_function
+from mysqlsh_plugins_common import run_and_show
 
+@plugin_function("innodb.getAutoincFill")
 def get_autoinc_fill(percentage=50, schema=None, session=None):
+    """
+    Prints information about auto_increment fill up.
+
+    Args:
+        percentage (integer): Only shows the tables where auto increments 
+                              values are filled to at least % (default: 50).
+        schema (string): The name of the schema to use. This is optional.                              
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
     
+    """    
     where_filter = ""
     having_filter = ""
 

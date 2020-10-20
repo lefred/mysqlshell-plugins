@@ -2,6 +2,7 @@
 # -----------------
 # Definition of methods related to InnoDB alter table progress
 #
+from mysqlsh.plugin_manager import plugin, plugin_function
 
 def _is_consumer_enabled(session, shell):
      
@@ -53,9 +54,18 @@ Do you want to enabled them now ? (y/N) """
     
     return ok
 
-
-
+@plugin_function("innodb.getAlterProgress")
 def get_alter_progress(format='table', session=None):
+    """
+    Prints InnoDB Alter progress info for running ALTER statements.
+
+    Args:
+        format (string): The output format to be used (default: table).
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+    
+    """
+
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell

@@ -1,4 +1,18 @@
+from mysqlsh.plugin_manager import plugin, plugin_function
+
+@plugin_function("innodb.getFragmentedTables")
 def get_fragmented_tables(percentage=10, session=None):
+    """
+    Prints InnoDB fragmented tables.
+    
+    This function prints the list of InnoDB Tables having free blocks.
+
+    Args:
+        percentage (integer): The amount of free space to be considered as fragmented (default: 10).
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+
+    """
     import mysqlsh
     shell = mysqlsh.globals.shell
 
@@ -43,7 +57,18 @@ def get_fragmented_tables(percentage=10, session=None):
     print ("Don't forget to run 'ANALYZE TABLE ...' for a more accurate result.")
 
 
+@plugin_function("innodb.getFragmentedTablesDisk")
 def get_fragmented_tables_disk(percentage=10, session=None):
+    """
+    Prints InnoDB fragmented tables with disk info.        
+
+    Args:
+        percentage (integer): The amount of free space to be considered as fragmented (default: 10).
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+    
+    """
+
     import mysqlsh
     shell = mysqlsh.globals.shell
 

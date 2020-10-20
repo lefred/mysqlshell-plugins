@@ -3,7 +3,18 @@
 # Definition of methods related to InnoDB buffer pool usage
 #
 
+from mysqlsh.plugin_manager import plugin, plugin_function
+
+@plugin_function("innodb.getTablesInBP")
 def get_tables_in_bp(session=None):
+    """
+    Prints Tables in BP with some statistics.
+
+    Args:
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+    
+    """  
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell
