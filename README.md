@@ -1,30 +1,41 @@
 # mysql-shell-ex
-A collection of MySQL Shell example plugins. 
+A collection of MySQL Shell example plugins.
 
-After installing this plugin collection into the `.mysqlsh/plugins/ext` folder it will register a new MySQL Shell global object called "ext" and load several plugin categories at MySQL Shell startup. 
+After installing this plugin collection into the `.mysqlsh/plugins/` folder, all the plugins will be automatically loaded at MySQL Shell startup.
 
-To get help about the individual plugins type `\? ext`.
+To get help about the individual plugins type `\? <plugin>`.
 
 ```
-MySQL JS> \? ext.schema
+MySQL JS> \? schema_utils
 NAME
-      schema - Schema management and utilities.
-
-SYNTAX
-      ext.schema
+      schema_utils - Schema management and utilities.
 
 DESCRIPTION
       A collection of schema management tools and related utilities that work
-      on schemas
+      on schemas."
 
 FUNCTIONS
+      deleteProcedures([schema][, routine][, session])
+            Delete stored procedures.
+
       help([member])
             Provides help about this object and it's members
 
-      showProcedures([schema][, session])
-            Lists all stored procedures.
+      showDefaults(table[, schema][, session])
+            Lists the default values of each column in a table.
 
-MySQL JS> ext.schema.showProcedures()
+      showInvalidDates([table][, schema][, session])
+            Show Invalid Dates
+
+      showProcedures([schema][, session])
+            Lists all stored procedures of either all schemas or a given
+            schema.
+
+      showRoutines([schema][, session])
+            Show Routines.
+
+
+MySQL JS> schema_utils.showProcedures()
 +----------------+-------------------------------------+
 | ROUTINE_SCHEMA | ROUTINE_NAME                        |
 +----------------+-------------------------------------+
@@ -35,7 +46,7 @@ MySQL JS> ext.schema.showProcedures()
 MySQL JS> \py
 Switching to Python mode...
 
-MySQL PY> ext.schema.show_procedures()
+MySQL PY> schema_utils.show_procedures()
 +----------------+-------------------------------------+
 | ROUTINE_SCHEMA | ROUTINE_NAME                        |
 +----------------+-------------------------------------+
@@ -49,7 +60,7 @@ To install this demo on your machine type the following commands after you have 
 
 This will clone the repository and copy the files to the right path in order to be automatically loaded on MySQL Shell startup.
 
-**Please note:** This plugin collection needs to be installed into a folder called `ext`.
+**Note:** You can install this plugin collection into a separated folder if you'd like. For example: `.mysqlsh/plugins/ext`.
 
 ### macOS / Linux
 ```
