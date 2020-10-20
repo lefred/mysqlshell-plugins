@@ -1,8 +1,9 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
 
+
 def _get_default_auth_method(session=None):
-    stmt = "select @@default_authentication_plugin";
-    result = session.run_sql(stmt)   
+    stmt = "select @@default_authentication_plugin"
+    result = session.run_sql(stmt)
     row = result.fetch_one()
     print("Default authentication method is %s" % row[0])
 
@@ -16,8 +17,8 @@ def get_user_auth_method(user=None, session=None):
         user (string): User to look for, it allows %%.
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
-    
-    """    
+
+    """
     import mysqlsh
     shell = mysqlsh.globals.shell
 
@@ -30,12 +31,11 @@ def get_user_auth_method(user=None, session=None):
 
     _get_default_auth_method(session)
 
-
     if user is None:
-       stmt = """select plugin as method, count(*) as users 
+        stmt = """select plugin as method, count(*) as users 
                  from mysql.user group by plugin order by 2 desc"""
     else:
-       stmt = """select user, host, plugin as method 
+        stmt = """select user, host, plugin as method 
                  from mysql.user where user like '%s' order by 1""" % user
 
     result = session.run_sql(stmt)

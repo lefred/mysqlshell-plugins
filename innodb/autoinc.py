@@ -1,6 +1,7 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
 from mysqlsh_plugins_common import run_and_show
 
+
 @plugin_function("innodb.getAutoincFill")
 def get_autoinc_fill(percentage=50, schema=None, session=None):
     """
@@ -24,28 +25,31 @@ def get_autoinc_fill(percentage=50, schema=None, session=None):
         session = shell.get_session()
         if session is None:
             print("No session specified. Either pass a session object to this "
-                "function or connect the shell to a database")
+                  "function or connect the shell to a database")
             return
     stmt = "select @@information_schema_stats_expiry;"
     result = session.run_sql(stmt)
     stats = result.fetch_all()
     if len(stats) > 0:
-       for stat in stats:
-           if int(stat[0]) > 0:
-               print ("Warning: information_schema_stats_expiry is set to {0}.".format(*stat))
-               if shell.options.interactive:
-                  answer = shell.prompt("""Do you want to change it ? (y/N) """
-                                 , {'defaultValue':'n'})
-                  if answer.lower() == 'y':
-                    stmt = """SET information_schema_stats_expiry=0"""
-                    result = session.run_sql(stmt)
-               else:
-                    print("Changing information_schema_stats_expiry to 0 for this session only")
+        for stat in stats:
+            if int(stat[0]) > 0:
+                print(
+                    "Warning: information_schema_stats_expiry is set to {0}.".format(*stat))
+                if shell.options.interactive:
+                    answer = shell.prompt(
+                        """Do you want to change it ? (y/N) """, {'defaultValue': 'n'})
+                    if answer.lower() == 'y':
+                        stmt = """SET information_schema_stats_expiry=0"""
+                        result = session.run_sql(stmt)
+                else:
+                    print(
+                        "Changing information_schema_stats_expiry to 0 for this session only")
                     stmt = """SET information_schema_stats_expiry=0"""
                     result = session.run_sql(stmt)
 
     if percentage > 0:
-        having_filter = "HAVING CAST(AUTO_INCREMENT_RATIO AS SIGNED INTEGER) >= {}".format(percentage)
+        having_filter = "HAVING CAST(AUTO_INCREMENT_RATIO AS SIGNED INTEGER) >= {}".format(
+            percentage)
     if schema:
         where_filter = "{} AND TABLE_SCHEMA='{}'".format(where_filter, schema)
 
