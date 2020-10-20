@@ -1,5 +1,5 @@
 # mysql-shell-ex
-A collection of MySQL Shell example plugins.
+A collection of MySQL Shell example plugins (MySQL Shell >= 8.0.22).
 
 After installing this plugin collection into the `.mysqlsh/plugins/` folder, all the plugins will be automatically loaded at MySQL Shell startup.
 
