@@ -60,7 +60,7 @@ def get_cascading_fk(session=None):
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
 
-    ""
+    """
     stmt = """SELECT CONCAT(t1.table_name, '.', column_name) AS 'foreign key',     
                      CONCAT(t1.referenced_table_name, '.', referenced_column_name) AS 'references',
                      t1.constraint_name AS 'constraint name', UPDATE_RULE, DELETE_RULE 

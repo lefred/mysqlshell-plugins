@@ -227,7 +227,7 @@ def get_queries_updating_same_pk(limit=1, schema=None, session=None):
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
 
-    ""
+    """
     filter = ""
     if schema is not None:
         filter += "where (current_schema = '%s' or object_schema = '%s')" % (schema, schema)

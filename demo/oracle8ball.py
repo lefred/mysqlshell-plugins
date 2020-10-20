@@ -1,9 +1,15 @@
+from mysqlsh.plugin_manager import plugin, plugin_function
 from random import randrange
 
+@plugin_function("demo.oracle8ball")
 def tell_me():
-    """Function that prints the so expected answer
+    """
+    Function that prints the so expected answer
+
+    What's the answer ? 
+
     Returns:
-    Nothing
+    a string
     """
     answers = ["It is certain.", "It is decidedly so.","Without a doubt.",
                "Yes - de nitely.", "You may rely on it.",
