@@ -31,79 +31,14 @@
 # JS> ext.security.showPasswordExpire(false)
 
 
-from ext.mysqlsh_plugins_common import register_plugin
-from ext.security import expire as security_expire
-from ext.security import authmethod as security_authmethod
+from mysqlsh.plugin_manager import plugin, plugin_function
+from security import expire 
+from security import authmethod 
 
-register_plugin("showPasswordExpire", security_expire.show_password_expire,
-                {
-                    "brief": "Lists all accounts and their expiration date",
-                    "parameters": [
-                        {
-                            "name": "show_expire",
-                            "brief": "List expired passwords too",
-                            "type": "bool",
-                            "required": False
-                        },
-                        {
-                            "name": "session",
-                            "brief": "The session to be used on the operation.",
-                            "type": "object",
-                            "classes": ["Session", "ClassicSession"],
-                            "required": False
-                        }
-                    ]
-                },
-                "security",
-                {
-                    "brief": "Security management and utilities.",
-                    "details": [
-                        "A collection of security management tools and related "
-                        "utilities"
-                    ]
-                })
+@plugin
+class security:
+   """
+    Security management and utilities.
 
-register_plugin("showPasswordExpireSoon", security_expire.show_password_expire_soon,
-                {
-                    "brief": "Lists all accounts that will expire in specific days",
-                    "parameters": [
-                        {
-                            "name": "expire_in_days",
-                            "brief": "List accounts that will expire in that range upper limit, if none provided, the default is 30",
-                            "type": "bool",
-                            "required": False
-                        },
-                        {
-                            "name": "session",
-                            "brief": "The session to be used on the operation.",
-                            "type": "object",
-                            "classes": ["Session", "ClassicSession"],
-                            "required": False
-                        }
-                    ]
-                },
-                "security"
-                )
-
-register_plugin("showAuthMethods", security_authmethod.get_user_auth_method,
-                {
-                    "brief": "Lists all specified authentication method and the amount of users using it.",
-                    "parameters": [
-                        {
-                            "name": "user",
-                            "brief": "User to look for, it allows %%.",
-                            "type": "string",
-                            "required": False
-                        },
-                        {
-                            "name": "session",
-                            "brief": "The session to be used on the operation.",
-                            "type": "object",
-                            "classes": ["Session", "ClassicSession"],
-                            "required": False
-                        }
-                    ]
-                },
-                "security"
-                )
-
+    A collection of security management tools and related utilities"
+   """

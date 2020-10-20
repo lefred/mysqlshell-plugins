@@ -1,4 +1,16 @@
+from mysqlsh.plugin_manager import plugin, plugin_function
+
+@plugin_function("security.showPasswordExpire")
 def show_password_expire(show_expired=True, session=None):
+    """
+    Lists all accounts and their expiration date.
+
+    Args:
+        show_expired (bool): List expired passwords too (default: false).
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+    
+    """
     import mysqlsh
     shell = mysqlsh.globals.shell
 
@@ -50,7 +62,19 @@ def show_password_expire(show_expired=True, session=None):
     shell.dump_rows(result)
 
 
+@plugin_function("security.showPasswordExpireSoon")
 def show_password_expire_soon(expire_in_days=30, session=None):
+    """
+    Lists all accounts that will expire in specific days.
+
+    Args:
+        expire_in_days (integer): List accounts that will expire in that range upper limit, 
+                                  if none provided, the default is 30.
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+    
+    """
+
     import mysqlsh
     shell = mysqlsh.globals.shell
 
@@ -76,4 +100,3 @@ def show_password_expire_soon(expire_in_days=30, session=None):
 
     result = session.run_sql(stmt)
     shell.dump_rows(result)
-
