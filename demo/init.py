@@ -1,8 +1,6 @@
 # init.py
 # -------
 from mysqlsh.plugin_manager import plugin, plugin_function
-from demo import oracle8ball 
-
 
 @plugin
 class demo:
@@ -12,11 +10,13 @@ class demo:
     This plugin is used only for demo purpose.
     """
 
+from demo import oracle8ball
+
 @plugin_function("demo.helloWorld")
 def hello_world():
     """
     Simple function that prints "Hello world!"
-    
+
     Just say Hello World
 
     Returns:
@@ -33,7 +33,7 @@ def show_schemas(session=None):
     with the global session of the MySQL Shell.
 
     Args:
-        session (object): The optional session object used to query the 
+        session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
 
     Returns:

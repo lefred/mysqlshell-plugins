@@ -52,11 +52,6 @@
 #
 
 from mysqlsh.plugin_manager import plugin, plugin_function
-from schema import utils
-from schema import procedures
-from schema import defaults
-from schema import dates
-from schema import routines
 
 @plugin
 class schema_utils:
@@ -66,3 +61,9 @@ class schema_utils:
     A collection of schema management tools and related
     utilities that work on schemas.
     """
+
+from schema import utils
+from schema import procedures
+from schema import defaults
+from schema import dates
+from schema import routines

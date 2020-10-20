@@ -3,8 +3,6 @@
 # Initializes the collations plugins.
 
 from mysqlsh.plugin_manager import plugin, plugin_function
-from collations import check
-from collations import outoforder
 
 @plugin
 class collations:
@@ -13,3 +11,6 @@ class collations:
 
     A collection of collation utilites.
     """
+
+from collations import check
+from collations import outoforder

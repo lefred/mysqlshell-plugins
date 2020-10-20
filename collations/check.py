@@ -9,19 +9,19 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
 
 def _check_if_collation_exists(session, collation):
-   query = """SELECT COLLATION_NAME FROM INFORMATION_SCHEMA.COLLATIONS 
+   query = """SELECT COLLATION_NAME FROM INFORMATION_SCHEMA.COLLATIONS
               where COLLATION_NAME = '%s'""" % collation
    result = session.run_sql(query)
    if len(result.fetch_all()) == 1:
        return True
    return False
-    
+
 @plugin_function("collations.nonUnique")
 def non_unique(table, column, collation, schema=None, session=None):
     """
     Find non-unique values in a column for a given collation.
 
-    This function will list all the non-unique values in a column 
+    This function will list all the non-unique values in a column
     for a given collation.
 
     If no session is given, the current session of the MySQL Shell will be used.
@@ -38,7 +38,7 @@ def non_unique(table, column, collation, schema=None, session=None):
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
 
-    """    
+    """
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell
