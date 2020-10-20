@@ -5,6 +5,7 @@ from router import status as router_status
 from router.myrouter import MyRouter
 
 from mysqlsh.plugin_manager import plugin, plugin_function
+
 @plugin
 class router:
     """

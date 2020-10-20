@@ -3,10 +3,13 @@ import time
 import sys
 from mysqlsh import mysql
 
-shell = mysqlsh.globals.shell
-
 
 class ProxySQL:
+    """
+    MySQL Router Object.
+
+    MySQL Router Object.
+    """
     def __init__(self, uri=False):
         self.user = None
         self.ip = None
@@ -54,7 +57,7 @@ class ProxySQL:
             size /= power
 
         return "%d tb" % (size,)
-    
+
     def __return_gr_members(self,session):
         stmt = """select member_host, member_port from performance_schema.replication_group_members"""
         result = session.run_sql(stmt)
@@ -70,9 +73,9 @@ class ProxySQL:
         return None
 
     def __return_mysql_users(self,session,search):
-        stmt = """select User, authentication_string from mysql.user where user like '%s' 
-                         and plugin = 'mysql_native_password' 
-                         and user not like 'mysql.%%' 
+        stmt = """select User, authentication_string from mysql.user where user like '%s'
+                         and plugin = 'mysql_native_password'
+                         and user not like 'mysql.%%'
                          and user not like 'mysql_innodb_cluster_%%'""" % search
         result = session.run_sql(stmt)
         users = []
@@ -100,28 +103,28 @@ class ProxySQL:
             return hosts
         return None
 
-     
+
     def configure(self, session=None):
         if session is None:
             session = shell.get_session()
-        if session is None: 
+        if session is None:
             print("No session specified. Either pass a session object to this "
                   "function or connect the shell to a member of an InnoDB Cluster")
             return
-        self.members = self.__return_gr_members(session) 
+        self.members = self.__return_gr_members(session)
         if self.members is None:
             print("ERROR: you need to be connected to a InnoDB Cluster")
-            return 
+            return
         for host in self.members:
-            stmt = """REPLACE INTO mysql_servers(hostgroup_id,hostname,port) 
+            stmt = """REPLACE INTO mysql_servers(hostgroup_id,hostname,port)
                       VALUES (1,'%s',%d);""" % (host['host'], host['port'])
             self.session.run_sql(stmt)
-        stmt = """REPLACE into mysql_group_replication_hostgroups 
+        stmt = """REPLACE into mysql_group_replication_hostgroups
                        (writer_hostgroup, backup_writer_hostgroup,
                         reader_hostgroup, offline_hostgroup, active,
-                        max_writers, writer_is_also_reader, max_transactions_behind) 
+                        max_writers, writer_is_also_reader, max_transactions_behind)
                       values (%d,%d,%d,%d,1,%d,%d,%d)""" % (self.w_hostgroup,
-                      self.b_w_hostgroup, self.r_hostgroup, self.o_hostgroup, 
+                      self.b_w_hostgroup, self.r_hostgroup, self.o_hostgroup,
                       self.max_writer, self.writer_is_reader, self.max_transaction_behind)
         self.session.run_sql(stmt)
         self.session.run_sql("save mysql servers to disk")
@@ -136,26 +139,26 @@ class ProxySQL:
             print("There is already a monitor user")
         else:
             # check is we are on primary
-            result = session.run_sql("""select member_role from performance_schema.replication_group_members 
+            result = session.run_sql("""select member_role from performance_schema.replication_group_members
             where member_host = @@hostname and member_role='PRIMARY'""")
             if len(result.fetch_all()) == 0:
                 print("ERROR: Please connect or provide a session to the Primary Master.")
-                return 
+                return
             # create the monitor user in the primary
             session.run_sql("create user %s identified by '%s'" % (self.monitor_user, self.monitor_pwd))
             session.run_sql("grant select on sys.* to '%s'" % self.monitor_user)
         ## Check is the required sys view is installed
-        result = session.run_sql("""select table_name from information_schema.views 
+        result = session.run_sql("""select table_name from information_schema.views
         where table_schema='sys' and table_name = 'gr_member_routing_candidate_status'""")
         if len(result.fetch_all()) > 0:
             print("The required view is already present, good !")
         else:
             # check is we are on primary
-            result = session.run_sql("""select member_role from performance_schema.replication_group_members 
+            result = session.run_sql("""select member_role from performance_schema.replication_group_members
             where member_host = @@hostname and member_role='PRIMARY'""")
             if len(result.fetch_all()) == 0:
                 print("ERROR: Please connect or provide a session to the Primary Master.")
-                return 
+                return
             result = session.run_sql("""DROP FUNCTION IF EXISTS sys.my_id""")
             result = session.run_sql("""CREATE FUNCTION sys.my_id() RETURNS TEXT(36) DETERMINISTIC NO SQL RETURN (SELECT @@global.server_uuid as my_id)""")
             result = session.run_sql("""DROP FUNCTION IF EXISTS sys.gr_member_in_primary_partition""")
@@ -165,7 +168,7 @@ class ProxySQL:
                     BEGIN
                       RETURN (
                         select
-                        if((select count(*) from performance_schema.replication_group_members 
+                        if((select count(*) from performance_schema.replication_group_members
                                where MEMBER_STATE NOT IN ('ONLINE', 'RECOVERING')) <=
                             (select count(*) from performance_schema.replication_group_members)/2, "yes", "no") valid
                         from performance_schema.replication_group_members where member_host=@@hostname);
@@ -199,7 +202,7 @@ class ProxySQL:
                 from performance_schema.replication_group_member_stats where member_id=sys.my_id()""")
 
         print("ProxySQL is configured to use MySQL InnoDB Cluster which %s is part" % shell.parse_uri(session.get_uri())['host'])
-        return    
+        return
 
     def set_host_group(self, hostgroup, user):
         if not hostgroup or not user:
@@ -230,7 +233,7 @@ class ProxySQL:
         for host in self.hosts:
             print(host)
         return
-    
+
     def get_hostgroups(self):
         print("ProxySQL Hostgroups:")
         print("===================:")
@@ -258,15 +261,15 @@ class ProxySQL:
     def import_users(self, hostgroup, user_search,session=None):
         if session is None:
             session = shell.get_session()
-        if session is None: 
+        if session is None:
             print("No session specified. Either pass a session object to this "
                   "function or connect the shell to a member of an InnoDB Cluster")
             return
         if not hostgroup or not user_search:
             print("Importing users from MySQL requires <hostgroup> and <user search pattern> as mandatory parameters")
             return
-        mysql_users = self.__return_mysql_users(session, user_search) 
-        if mysql_users: 
+        mysql_users = self.__return_mysql_users(session, user_search)
+        if mysql_users:
             for mysql_user in mysql_users:
                 stmt = """REPLACE into mysql_users(username, password, default_hostgroup)
                       	VALUES ('%s', '%s', %d)""" % (mysql_user['username'], mysql_user['password'], hostgroup)
@@ -297,11 +300,11 @@ class ProxySQL:
 
     def get_status(self,loop=False):
         while True:
-            stmt = """select case when hostgroup =1 THEN "OFFLINE" WHEN hostgroup=2 THEN "PRIMARY" 
-                    WHEN hostgroup=3 THEN "SECONDARY" ELSE "OTHER" END HostGrpRole,Hostgroup HG, 
-                    srv_host Host, 
-                    srv_port Port, ConnUsed, ConnFree, ConnOK, ConnERR, MaXConnUsed, 
-                    Queries, Bytes_data_sent BytesSent, Bytes_data_recv BytesRecv, Latency_us 'Latency(us)' 
+            stmt = """select case when hostgroup =1 THEN "OFFLINE" WHEN hostgroup=2 THEN "PRIMARY"
+                    WHEN hostgroup=3 THEN "SECONDARY" ELSE "OTHER" END HostGrpRole,Hostgroup HG,
+                    srv_host Host,
+                    srv_port Port, ConnUsed, ConnFree, ConnOK, ConnERR, MaXConnUsed,
+                    Queries, Bytes_data_sent BytesSent, Bytes_data_recv BytesRecv, Latency_us 'Latency(us)'
                     from stats_mysql_connection_pool where status = 'ONLINE'"""
             result = self.session.run_sql(stmt)
             hosts_rec = result.fetch_all()
@@ -310,7 +313,7 @@ class ProxySQL:
             print("")
             print("Hostgroups:")
             print("-----------")
-            print("%d : OFFLINE     %d : PRIMARY    %d : SECONDARY" % (self.o_hostgroup, self.w_hostgroup, self.r_hostgroup)) 
+            print("%d : OFFLINE     %d : PRIMARY    %d : SECONDARY" % (self.o_hostgroup, self.w_hostgroup, self.r_hostgroup))
             if len(hosts_rec) > 0:
                 result = self.session.run_sql(stmt)
                 shell.dump_rows(result)

@@ -3,14 +3,27 @@
 
 from proxysql.proxysql import ProxySQL
 
+from mysqlsh.plugin_manager import plugin, plugin_function
 
-proxysql = shell.create_extension_object()
+@plugin
+class proxysql:
+    """
+    ProxySQL Object.
 
+    ProxySQL Object.
+    """
 
-global_obj = shell.create_extension_object()
-
-
+@plugin_function("proxysql.create")
 def create(uri):
+    """
+    Create the ProxySQL Object.
+
+    Args:
+        uri (string): Connection uri to ProxySQL's admin interface.
+
+    Returns:
+        The newly created ProxySQL object
+    """
     my_proxy = ProxySQL(uri)
     return {
          'status': lambda loop=False: my_proxy.get_status(loop),
@@ -23,18 +36,3 @@ def create(uri):
          'importUsers': lambda hostgroup="", user_search="": my_proxy.import_users(hostgroup, user_search),
          'setUserHostgroup': lambda hostgroup="", user_search="": my_proxy.set_host_group(hostgroup, user_search)
     }
-
-shell.add_extension_object_member(proxysql, 'create', lambda uri=False:create(uri),
-            {
-                'brief':'Create the ProxySQL Object', 'details':['It has ProxySQL methods.'],
-                'parameters':[
-                                {'name':'uri', 'type':'string', 'required':True, 'brief':'connection uri to ProxySQL Admin port'},
-                        ]
-                }
-            )
-
-shell.add_extension_object_member(global_obj, 'proxysql', proxysql,
-{
-    'brief':'ProxySQL Object',
-    'details':['ProxySQL Object.']
-})
