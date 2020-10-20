@@ -1,6 +1,6 @@
 
 import subprocess
-from ext.support.sections import util
+from support.sections import util
 
 def get_linux_memory_usage(advices):
     command = "free -h"

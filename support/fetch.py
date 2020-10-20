@@ -7,7 +7,7 @@
 import os
 import subprocess
 from datetime import datetime
-from ext.support.sections import *
+from support.sections import *
 
 try:
     import platform

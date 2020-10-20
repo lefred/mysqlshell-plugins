@@ -1,6 +1,6 @@
 
 import subprocess
-from ext.support.sections import util
+from support.sections import util
 
 
 def _get_mount_options(disk):

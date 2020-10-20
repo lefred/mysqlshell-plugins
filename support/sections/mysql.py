@@ -1,4 +1,4 @@
-from ext.support.sections import util
+from support.sections import util
 
 
 def version_info(session):

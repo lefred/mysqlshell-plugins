@@ -6,6 +6,8 @@
 # KEY or have a unique constraint e.g when migarting from latin1 to
 # utf8mb4.
 
+from mysqlsh.plugin_manager import plugin, plugin_function
+
 def _check_if_collation_exists(session, collation):
    query = """SELECT COLLATION_NAME FROM INFORMATION_SCHEMA.COLLATIONS 
               where COLLATION_NAME = '%s'""" % collation
@@ -14,8 +16,29 @@ def _check_if_collation_exists(session, collation):
        return True
    return False
     
+@plugin_function("collations.nonUnique")
+def non_unique(table, column, collation, schema=None, session=None):
+    """
+    Find non-unique values in a column for a given collation.
 
-def non_unique(table, col, collation, schema=None, session=None):
+    This function will list all the non-unique values in a column 
+    for a given collation.
+
+    If no session is given, the current session of the MySQL Shell will be used.
+
+    If no schema is given and there is no current schema set in the current
+    session, all stored procedures of all schemas will be listed. Otherwise,
+    only the stored procedures of the schema will be listed.
+
+    Args:
+        table (string): The mandatory name of a table to be used.
+        column (string): The mandatory column to check.
+        collation (string): The mandatory collation to check.
+        schema (string): The optional name of a schema to be used.
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+
+    """    
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell

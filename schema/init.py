@@ -52,7 +52,7 @@
 #
 
 from mysqlsh.plugin_manager import plugin, plugin_function
-from ext.schema import utils
+from schema import utils
 
 @plugin
 class schema_utils:
@@ -60,7 +60,7 @@ class schema_utils:
     Schema management and utilities.
 
     A collection of schema management tools and related
-    utilities that work on schemas."
+    utilities that work on schemas.
     """
 
 @plugin_function("schema_utils.showProcedures")

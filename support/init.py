@@ -1,5 +1,5 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
-from ext.support import fetch
+from support import fetch
 
 @plugin
 class support:
