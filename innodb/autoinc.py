@@ -7,13 +7,13 @@ def get_autoinc_fill(percentage=50, schema=None, session=None):
     Prints information about auto_increment fill up.
 
     Args:
-        percentage (integer): Only shows the tables where auto increments 
+        percentage (integer): Only shows the tables where auto increments
                               values are filled to at least % (default: 50).
-        schema (string): The name of the schema to use. This is optional.                              
+        schema (string): The name of the schema to use. This is optional.
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
-    
-    """    
+
+    """
     where_filter = ""
     having_filter = ""
 
@@ -86,9 +86,9 @@ def get_autoinc_fill(percentage=50, schema=None, session=None):
         TABLE_SCHEMA NOT IN ('mysql', 'INFORMATION_SCHEMA', 'performance_schema')
         AND EXTRA='auto_increment' {}
         {}
-        ORDER BY CAST(AUTO_INCREMENT_RATIO AS SIGNED INTEGER) 
+        ORDER BY CAST(AUTO_INCREMENT_RATIO AS SIGNED INTEGER)
         """.format(where_filter, having_filter)
-    
+
     run_and_show(stmt)
 
     return

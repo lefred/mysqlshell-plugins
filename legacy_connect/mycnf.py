@@ -36,9 +36,9 @@ def connect_with_mycnf(use_mysqlx=False, file=None):
             return
     import getpass
 
-    print("let's use info from %s to connect" % file)        
+    print("let's use info from %s to connect" % file)
     config = configparser.ConfigParser()
-    config.read(file)    
+    config.read(file)
     if not config.has_section('client'):
         print("ERROR: your my.cnf file should contain a section '[client]'")
         return
@@ -59,7 +59,7 @@ def connect_with_mycnf(use_mysqlx=False, file=None):
         port=config['client'].get('port', '3306')
         connection_dict = { "scheme": scheme, "user": user, "password": password, "host": hostname, "port": port }
         session = mysql.get_session(connection_dict)
-    
+
     shell.set_session(session)
-    
+
     return

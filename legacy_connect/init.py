@@ -1,10 +1,7 @@
 # init.py
 # -------
 
-
 from mysqlsh.plugin_manager import plugin, plugin_function
-from legacy_connect import mycnf
-
 
 @plugin
 class legacy_connect:
@@ -13,3 +10,5 @@ class legacy_connect:
 
     Plugin to connect to MySQL using the old my.cnf file.
     """
+
+from legacy_connect import mycnf

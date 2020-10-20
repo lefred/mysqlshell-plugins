@@ -5,13 +5,13 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
 
 def _is_consumer_enabled(session, shell):
-     
+
     stmt = """select sys.ps_is_consumer_enabled("events_stages_current")"""
     result = session.run_sql(stmt)
     consumer = result.fetch_one()[0]
     ok = False
     if consumer == "NO":
-        answer = shell.prompt("""The consumer for 'events_stages_current' is not enabled, 
+        answer = shell.prompt("""The consumer for 'events_stages_current' is not enabled,
 do you want to enabled it now ? (y/N) """,
                               {'defaultValue':'n'})
         if answer.lower() == 'y':
@@ -22,10 +22,10 @@ do you want to enabled it now ? (y/N) """,
             ok = True
     else:
         ok = True
-    
+
     return ok
 
-def _are_instruments_enabled(session, shell):    
+def _are_instruments_enabled(session, shell):
 
     stmt = """SELECT NAME, ENABLED
          FROM performance_schema.setup_instruments
@@ -39,7 +39,7 @@ def _are_instruments_enabled(session, shell):
         for instrument in instruments:
             instruments_str += "%s, " % instrument[0]
 
-        answer = shell.prompt("""Some instruments are not enabled: %s 
+        answer = shell.prompt("""Some instruments are not enabled: %s
 Do you want to enabled them now ? (y/N) """
                               % instruments_str, {'defaultValue':'n'})
         if answer.lower() == 'y':
@@ -51,7 +51,7 @@ Do you want to enabled them now ? (y/N) """
             ok = True
     else:
         ok = True
-    
+
     return ok
 
 @plugin_function("innodb.getAlterProgress")
@@ -63,7 +63,7 @@ def get_alter_progress(format='table', session=None):
         format (string): The output format to be used (default: table).
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
-    
+
     """
 
     # Get hold of the global shell object
@@ -86,15 +86,15 @@ def get_alter_progress(format='table', session=None):
 
     stmt="""SELECT stmt.THREAD_ID, stmt.SQL_TEXT, stage.EVENT_NAME AS State,
                    stage.WORK_COMPLETED, stage.WORK_ESTIMATED,
-                   lpad(CONCAT(ROUND(100*stage.WORK_COMPLETED/stage.WORK_ESTIMATED, 2),"%"),12," ") 
+                   lpad(CONCAT(ROUND(100*stage.WORK_COMPLETED/stage.WORK_ESTIMATED, 2),"%"),12," ")
                    AS CompletedPct, lpad(format_pico_time(stmt.TIMER_WAIT), 10, " ") AS StartedAgo,
-                   current_allocated Memory           
-            FROM performance_schema.events_statements_current stmt                
-            INNER JOIN sys.memory_by_thread_by_current_bytes mt  
-                    ON mt.thread_id = stmt.thread_id 
-            INNER JOIN performance_schema.events_stages_current stage 
+                   current_allocated Memory
+            FROM performance_schema.events_statements_current stmt
+            INNER JOIN sys.memory_by_thread_by_current_bytes mt
+                    ON mt.thread_id = stmt.thread_id
+            INNER JOIN performance_schema.events_stages_current stage
                     ON stage.THREAD_ID = stmt.THREAD_ID"""
-    
+
     result = session.run_sql(stmt)
     shell.dump_rows(result, format)
     return
