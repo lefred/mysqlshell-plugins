@@ -3,11 +3,25 @@
 # Definition of methods related to old my.cnf file for credentials
 #
 
+from mysqlsh.plugin_manager import plugin, plugin_function
+
 from mysqlsh import mysql
 from mysqlsh import mysqlx
 import re
 
+@plugin_function("legacy_connect.mycnf")
 def connect_with_mycnf(use_mysqlx=False, file=None):
+    """
+    Connect to MySQL using old .my.cnf file.
+
+    This function reads the login information from .my.cnf.
+
+    Args:
+        use_mysqlx (bool): Optional boolean value to use or not MySQL X protocol (default: false).
+        file: The optional location of the  my.cnf file (default: ~/.my.cnf).
+
+    """    
+
     try:
         import configparser
     except:

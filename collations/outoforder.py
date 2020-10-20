@@ -28,7 +28,7 @@ def out_of_order(table, column, collation, schema=None, session=None):
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
 
-    """     
+    """
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell
