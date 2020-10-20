@@ -20,42 +20,40 @@ except:
     print("Error importing module re, check if it's installed")
     exit
 
-
 def _is_local(session, shell):
-    stmt = "select @@hostname, @@port, @@mysqlx_port" 
-    result = session.run_sql(stmt) 
+    stmt = "select @@hostname, @@port, @@mysqlx_port"
+    result = session.run_sql(stmt)
     row = result.fetch_one()
-    hostname = row[0]    
-    port = row[1]    
-    xport = row[2]    
+    hostname = row[0]
+    port = row[1]
+    xport = row[2]
     uri_json = shell.parse_uri(session.get_uri())
     if uri_json['host'] == "localhost" and ( port == uri_json['port'] or xport == uri_json['port']):
-        return True  
+        return True
     if uri_json['host'] == "127.0.0.1" and ( port == uri_json['port'] or xport == uri_json['port']) :
-        return True  
+        return True
     if uri_json['host'] == hostname:
         return True
     return False
 
 def _get_os(session):
-    stmt = "select @@version_compile_os" 
-    result = session.run_sql(stmt) 
+    stmt = "select @@version_compile_os"
+    result = session.run_sql(stmt)
     row = result.fetch_one()
     return row[0]
 
 def _get_hostname(session):
-    stmt = "select @@hostname" 
-    result = session.run_sql(stmt) 
+    stmt = "select @@hostname"
+    result = session.run_sql(stmt)
     row = result.fetch_one()
     return row[0]
 
 def _get_datadirs(session):
     stmt = """select @@datadir,@@innodb_data_home_dir,@@innodb_log_group_home_dir,
               @@innodb_temp_tablespaces_dir, @@innodb_tmpdir, @@tmpdir"""
-    result = session.run_sql(stmt) 
+    result = session.run_sql(stmt)
     row = result.fetch_one_object()
     return row
-
 
 def _get_processor_name():
     if platform.system() == "Windows":
@@ -66,8 +64,8 @@ def _get_processor_name():
         return subprocess.check_output(command).strip()
     elif platform.system() == "Linux":
         command = "cat /proc/cpuinfo"
-        all_info = subprocess.check_output(command, shell=True).strip()                  
-        for line in all_info.decode("utf-8").split("\n"):                     
+        all_info = subprocess.check_output(command, shell=True).strip()
+        for line in all_info.decode("utf-8").split("\n"):
             if "model name" in line:
                 return re.sub( ".*model name.*:", "", line,1)
     return ""
@@ -77,8 +75,6 @@ def _get_all_common_os_info():
     osname, name, version, _, _, arch = platform.uname()
     processor = _get_processor_name()
     return osname, name, version, arch, processor.lstrip(' '), nb_cpu
-
-    
 
 def _get_all_info_linux(datadirs, advices):
     output = memory.get_linux_memory_usage(advices)
@@ -95,48 +91,3 @@ def _get_all_mysql_info(session):
         output += mysql.get_largest_innodb_tables(session)
         output += mysql.get_tables_without_pk(session)
     return output
-
-def get_fetch_info(mysql=True, os=False, advices=False, session=None):
-    # Get hold of the global shell object
-    import mysqlsh
-    shell = mysqlsh.globals.shell
-    
-    output = ""
-    if session is None:
-        session = shell.get_session()
-        if session is None:
-            print("No session specified. Either pass a session object to this "
-                  "function or connect the shell to a database")
-            return
-    hostname = _get_hostname(session)
-    datadirs = _get_datadirs(session)
-    header = "Report for %s - %s" % (hostname,datetime.strftime(datetime.now(), "%a %Y-%m-%d %H:%M"))
-    print("=" * len(header))
-    print(header)
-    print("=" * len(header))
-    # check if we need to get info related to OS
-    if os == True:
-        # check if we are running the shell locally
-        if _is_local(session, shell):
-            # we are connected locally
-            osname_sql = _get_os(session)
-            osname, name, version, arch, processor, nb_cpu = _get_all_common_os_info()
-            if osname_sql == "Linux":
-               output2 = _get_all_info_linux(datadirs, advices)
-            else:
-                print("Your OS (%s) is now yet supported." % osname_sql)
-
-            output += util.output("Operating System", "%s (MySQL built on %s)" % (osname, osname_sql))
-            output += util.output("Version", version)
-            output += util.output("Architecture", arch)
-            output += util.output("Processor", processor)
-            output += util.output("CPU Core(s)", nb_cpu)
-            output += output2
-            print(output)
-        else:
-            print("For Operating System information you need to run the shell locally")
-
-    if mysql == True:
-        output = _get_all_mysql_info(session)
-        print(output)
-    return
