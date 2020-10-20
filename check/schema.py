@@ -1,7 +1,19 @@
-from ext.mysqlsh_plugins_common import run_and_show
+from mysqlsh.plugin_manager import plugin, plugin_function
+from mysqlsh_plugins_common import run_and_show
 
+
+@plugin_function("check.getNonInnoDBTables")
 def get_noninnodb_tables(session=None):
+    """
+    Prints all tables not using InnoDB.
 
+    This function list all tables not using InnoDB Storage Engine.
+
+    Args:
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+
+    """
     stmt = """SELECT table_schema, table_name, engine, table_rows, 
                      sys.format_bytes(index_length+data_length) AS 'SIZE'
               FROM information_schema.tables 
@@ -11,8 +23,18 @@ def get_noninnodb_tables(session=None):
     
     run_and_show(stmt, "table", session)
 
+@plugin_function("check.getInnoDBTablesWithNoPK")
 def get_innodb_with_nopk(session=None):
+    """
+    Prints all InnoDB tables not having a Primary Key or a non NULL unique key.
 
+    This function list all InnoDB tables not having a valid cluster index key.
+
+    Args:
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+
+    """
     stmt = """SELECT tables.table_schema , tables.table_name , tables.engine,
                      table_rows, sys.format_bytes(index_length+data_length) AS 'SIZE' 
               FROM information_schema.tables 
@@ -27,8 +49,18 @@ def get_innodb_with_nopk(session=None):
 
     run_and_show(stmt, "table", session)
 
+@plugin_function("check.getCascadingFK")
 def get_cascading_fk(session=None):
+    """
+    Prints all foreign keys with cascading constraints.
 
+    This function list all InnoDB tables having foreign keys with cascading foreign key constraints.
+
+    Args:
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+
+    ""
     stmt = """SELECT CONCAT(t1.table_name, '.', column_name) AS 'foreign key',     
                      CONCAT(t1.referenced_table_name, '.', referenced_column_name) AS 'references',
                      t1.constraint_name AS 'constraint name', UPDATE_RULE, DELETE_RULE 

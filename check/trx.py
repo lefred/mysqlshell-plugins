@@ -2,8 +2,9 @@
 # -----------------
 # Definition of member functions for the check extension object to display trx info
 #
-from ext.mysqlsh_plugins_common import is_consumer_enabled
-from ext.mysqlsh_plugins_common import are_instruments_enabled
+from mysqlsh.plugin_manager import plugin, plugin_function
+from mysqlsh_plugins_common import is_consumer_enabled
+from mysqlsh_plugins_common import are_instruments_enabled
 
 
 def _returnBinlogEvents(session, binlog):
@@ -113,7 +114,18 @@ def _format_bytes(size):
 
     return "%d tb" % (size,)
 
+@plugin_function("check.getBinlogsIO")
 def show_binlogs_io(session=None):
+    """
+    Prints the IO statistics of binary logs files available on the server.
+
+    This function list all the binary logs available on the server with their IO statistics.
+
+    Args:
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+
+    """    
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell
@@ -141,7 +153,18 @@ def show_binlogs_io(session=None):
     return  
 
 
+@plugin_function("check.getBinlogs")
 def show_binlogs(session=None):
+    """
+    Prints the list of binary logs available on the server.
+
+    This function list all the binary logs available on the server.
+
+    Args:
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+
+    """    
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell
@@ -160,7 +183,19 @@ def show_binlogs(session=None):
  
     return  
 
+@plugin_function("check.showTrxSize")
 def show_trx_size(binlog=None, session=None):
+    """
+    Prints Transactions Size from a binlog.
+
+    This function list the size of transactions found in binary log.
+
+    Args:
+        binlog (string): The binlog file from which to extract transactions.
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+
+    """ 
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell
@@ -197,7 +232,22 @@ def show_trx_size(binlog=None, session=None):
            print("%s" % _format_bytes(row[4]-start))
     return 
 
+@plugin_function("check.showTrxSizeSort")
 def show_trx_size_sort(limit=10,binlog=None, session=None):
+    """
+    Prints Transactions Size from a binlog and sort them by size descending.
+
+    This function list the size of transactions found in binary log and sort them by size
+    in descinding order.
+
+    Args:
+        limit (integer): The optional limit of transactions to list (default: 10).
+        binlog (string): The optional binlog file from which to extract transactions. If none is
+               is provided, the current binlog file is used.
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+
+    """
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell
@@ -243,8 +293,20 @@ def show_trx_size_sort(limit=10,binlog=None, session=None):
        print("%s" % _format_bytes(val))
     return 
 
+@plugin_function("check.getTrxWithMostStatements")
 def get_trx_most_stmt(limit=1, schema=None, session=None):
+    """
+    Prints the transactions with the most amount of statements.
 
+    This function list the transactions having the largest amount of statements in it.
+
+    Args:
+        limit (integer): The optional limit of transactions to list. (default: 1)
+        schema (string): The name of the schema to use. This is optional.
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+
+    """
     import mysqlsh
     shell = mysqlsh.globals.shell
 
@@ -327,7 +389,20 @@ def get_trx_most_stmt(limit=1, schema=None, session=None):
         
     return
 
+@plugin_function("check.getTrxWithMostRowsAffected")
 def get_trx_most_rows(limit=1, schema=None, session=None):
+    """
+    Prints the transactions with the most amount of rows affected.
+
+    This function list the transactions having the largest amount of rows affected in it.
+
+    Args:
+        limit (integer): The optional limit of transactions to list (default: 1).
+        schema (string): The name of the schema to use. This is optional.
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+
+    """    
 
     import mysqlsh
     shell = mysqlsh.globals.shell
@@ -411,7 +486,20 @@ def get_trx_most_rows(limit=1, schema=None, session=None):
         
     return
 
+@plugin_function("check.getRunningStatements")
 def get_statements_running(limit=10, session=None):
+    """
+    Prints the statements being part of a running transaction identified by thread ID.
+
+    This function list the a statements being part of a running transaction identified by
+    its thread ID.
+
+    Args:
+        limit (integer): The optional limit of transactions to list (default: 10).
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+
+    """    
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell

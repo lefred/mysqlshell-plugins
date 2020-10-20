@@ -3,7 +3,21 @@
 # Definition of functions for the check and display locking info 
 #
 
+from mysqlsh.plugin_manager import plugin, plugin_function
+
+@plugin_function("check.getLocks")
 def show_locks(limit=10, session=None):
+    """
+    Prints the locks held by threads.
+
+    This function list all locks held by a specific thread.
+
+    Args:
+        limit (integer): The amount of query to return (default: 10).
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+
+    """
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell

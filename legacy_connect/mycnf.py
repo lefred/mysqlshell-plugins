@@ -20,7 +20,7 @@ def connect_with_mycnf(use_mysqlx=False, file=None):
         use_mysqlx (bool): Optional boolean value to use or not MySQL X protocol (default: false).
         file: The optional location of the  my.cnf file (default: ~/.my.cnf).
 
-    """    
+    """
 
     try:
         import configparser

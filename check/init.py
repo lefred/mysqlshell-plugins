@@ -1,10 +1,20 @@
-from ext.mysqlsh_plugins_common import register_plugin
-from ext.check import trx
-from ext.check import queries
-from ext.check import locks
-from ext.check import schema
-from ext.check import other
 
+from mysqlsh.plugin_manager import plugin, plugin_function
+
+from check import trx
+from check import queries
+from check import locks
+from check import schema
+from check import other
+
+@plugin
+class check:
+    """
+    Check management and utilities.
+
+    A collection of tools and utilities to perform checks on your
+    MySQL Database Server.
+    """
 
 register_plugin("showTrxSize", trx.show_trx_size,
            {"brief": "Prints Transactions Size from a binlog",

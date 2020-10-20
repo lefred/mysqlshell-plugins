@@ -1,4 +1,5 @@
-from ext.mysqlsh_plugins_common import run_and_show
+from mysqlsh.plugin_manager import plugin, plugin_function
+from mysqlsh_plugins_common import run_and_show
 
 def _get_full_details(shell, session, original_query, schema):
        old_schema=None
@@ -28,8 +29,22 @@ def _get_full_details(shell, session, original_query, schema):
            session.set_current_schema(old_schema)
        return
 
+@plugin_function("check.getSlowerQuery")
 def get_queries_95_perc(limit=1, select=False, schema=None, session=None):
+    """
+    Prints the slowest queries. 
+    
+    This function list the slower queries. If the limit is 1 you can also see 
+    all the details about the query.
 
+    Args:
+        limit (integer): The amount of query to return (default: 1).
+        select (bool): Returns only SELECT queries.
+        schema (string): The name of the schema to use. This is optional.
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+
+    """
     import mysqlsh
     shell = mysqlsh.globals.shell
 
@@ -65,8 +80,22 @@ def get_queries_95_perc(limit=1, select=False, schema=None, session=None):
           original_query = row[6]
           _get_full_details(shell, session, original_query, row[0])
 
+@plugin_function("check.getFullTableScanQuery")
 def get_queries_ft_scan(limit=1, select=False, schema=None, session=None):
+    """
+    Prints the queries performing full table scans"
+    
+    This function list the all the queries performing Full Table Scans. If the 
+    limit is 1 you can also see all the details about the query.
 
+    Args:
+        limit (integer): The amount of query to return (default: 1).
+        select (bool): Returns only SELECT queries.
+        schema (string): The name of the schema to use. This is optional.
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+
+    """
     import mysqlsh
     shell = mysqlsh.globals.shell
 
@@ -105,7 +134,21 @@ def get_queries_ft_scan(limit=1, select=False, schema=None, session=None):
           original_query = row[8]
           _get_full_details(shell, session, original_query, row[0])
 
+@plugin_function("check.getQueryTempDisk")
 def get_queries_temp_disk(limit=1, schema=None, session=None):
+    """
+    Prints the queries using temporary tables on disk.
+    
+    This function list the all the queries using temporary tables on disk.
+    If the limit is 1 you can also see all the details about the query.
+
+    Args:
+        limit (integer): The amount of query to return (default: 1).
+        schema (string): The name of the schema to use. This is optional.
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+
+    """    
     import mysqlsh
     shell = mysqlsh.globals.shell
 
@@ -142,8 +185,20 @@ def get_queries_temp_disk(limit=1, schema=None, session=None):
           original_query = row[6]
           _get_full_details(shell, session, original_query, schema)
 
+@plugin_function("check.getQueryMostRowAffected")
 def get_queries_most_rows_affected(limit=1, schema=None, session=None):
+    """
+    Prints the statements affecting the most rows.
+    
+    This function list the all the statements affecting most rows.
 
+    Args:
+        limit (integer): The amount of query to return (default: 1).
+        schema (string): The name of the schema to use. This is optional.
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+
+    """
     filter = ""
     if schema is not None:
         filter += "where db = '%s'" % schema
@@ -158,8 +213,21 @@ def get_queries_most_rows_affected(limit=1, schema=None, session=None):
 
     run_and_show(stmt,'vertical')
 
+@plugin_function("check.getQueryUpdatingSamePK")
 def get_queries_updating_same_pk(limit=1, schema=None, session=None):
+    """
+    Prints the statements updating mostly the same PK.
+    
+    This finction list all the statements updatings mostly the same PK and 
+    therefore having to wait more. This is used to detect hotspots.
+    
+    Args:
+        limit (integer): The amount of query to return (default: 1).
+        schema (string): The name of the schema to use. This is optional.
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
 
+    ""
     filter = ""
     if schema is not None:
         filter += "where (current_schema = '%s' or object_schema = '%s')" % (schema, schema)
