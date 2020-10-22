@@ -14,3 +14,4 @@ from check import queries
 from check import locks
 from check import schema
 from check import other
+from check import gtid
