@@ -18,7 +18,7 @@ def _get_executed_gtid_set(session):
     gtid = result.fetch_one()[0]
     return gtid
 
-@plugin_function("check.trx_rate")
+@plugin_function("check.getTrxRate")
 def get_trx_rate(interval=1, limit=10, session=None):
     """
     Prints amount ox transactions committed in a certain interval.
