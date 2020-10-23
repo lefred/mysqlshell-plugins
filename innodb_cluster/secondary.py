@@ -30,7 +30,7 @@ def _get_members(session):
 
 def _check_session_cred(shell, uri):
     tofind = uri.split('/')[2]
-    print(uri)
+    #print(uri)
     if tofind not in shell.list_credentials():
         print("%s is not stored in your Shell Credentials")
         answer = shell.prompt(

@@ -7,6 +7,7 @@ found_requests = requests_spec is not None
 
 if found_requests:
     import requests
+    requests.packages.urllib3.disable_warnings()
 else:
     print("Error importing module 'requests', check if it's installed (Python {}.{}.{})".format(
            sys.version_info[0], sys.version_info[1], sys.version_info[2]))
@@ -37,10 +38,10 @@ class MyRouter:
 
     def __router_call(self,route):
 
-        url = "http://" + self.ip + ":" + str(self.port) + "/api/" + self.api + route
+        url = "https://" + self.ip + ":" + str(self.port) + "/api/" + self.api + route
         try:
             if found_requests:
-                resp = requests.get(url,auth=(self.user,self.__password))
+                resp = requests.get(url,auth=(self.user,self.__password), verify=False)
             else:
                 print("ERROR: This module cannot be used, missing module 'requests'")
                 return False
@@ -57,27 +58,56 @@ class MyRouter:
     def __cluster_routes(self, route_to_find):
         result = self.__router_call("/routes")
         if result:
+            l1 = l2 = l3 = l6 = 0
+            l4 = l5 = 18
+            header_printed = 0
+            print_empty =[]
             result_json = json.loads(result.content)
-            fmt = "| {0:22s} | {1:22s} | {2:12s} | {3:>20s} | {4:>20s} | {5:27s} |"
-            header = fmt.format("Route", "Source", "Destination", "From Server", "To Server", "Connection Started")
-            bar = "+" + "-" * 24 + "+" + "-" * 24 + "+" + "-" * 14 + "+" + "-" * 22 + "+" + "-" * 22 + "+" + "-" * 29 + "+"
-            print (bar)
-            print (header)
-            print (bar)
             for item in result_json['items']:
                     route_name = item['name']
                     if route_to_find in route_name:
                         result_item = self.__router_call("/routes/%s/connections" % route_name)
                         result_item_json = json.loads(result_item.content)
                         if len(result_item_json['items']) > 0:
+                            if header_printed == 0:
+                                l1 = len(route_name)+2
+                                for entry in result_item_json['items']:
+                                    l2_tmp = len(entry['sourceAddress'])
+                                    if l2_tmp > l2: l2 = l2_tmp
+                                    l3_tmp = len(entry['destinationAddress'])
+                                    if l3_tmp > l3: l3 = l3_tmp
+                                    l4_tmp = len(str(entry['bytesFromServer']))
+                                    if l4_tmp > l4: l4 = l4_tmp
+                                    l5_tmp = len(str(entry['bytesToServer']))
+                                    if l5_tmp > l5: l5 = l5_tmp
+                                    l6_tmp = len(entry['timeStarted'])
+                                    if l6_tmp > l6: l6 = l6_tmp
+                                fmt = "| {0:"+str(l1)+"s} | {1:"+str(l2)+"s} | {2:"+str(l3)+"s} | {3:>"+str(l4)+"s} | {4:>"+str(l5)+"s} | {5:"+str(l6)+"s} |"
+                                header = fmt.format("Route", "Source", "Destination", "From Server", "To Server", "Connection Started")
+                                bar = "+" + "-" * (l1+2) + "+" + "-" * (l2+2) + "+" + "-" * (l3+2) + "+" + "-" * (l4+2) + "+" + "-" * (l5+2) + "+" + "-" * (l6+2) + "+"
+                                print (bar)
+                                print (header)
+                                print (bar)
+                                header_printed=1
+                            if len(print_empty) > 0:
+                                for routename in print_empty:
+                                  print (fmt.format(routename, " "," ", " ", " ",  " "))
+                                print_empty.clear
+
+
                             for entry in result_item_json['items']:
                                 print (fmt.format(route_name, entry['sourceAddress'], entry['destinationAddress'],
                                 str(self.__format_bytes(entry['bytesFromServer'])),
                                 str(self.__format_bytes(entry['bytesToServer'])), entry['timeStarted']))
                                 route_name=""
                         else:
-                                print (fmt.format(route_name, " "," ", " ", " ",  " "))
-            print (bar)
+                                if header_printed == 1:
+                                    print (fmt.format(route_name, " "," ", " ", " ",  " "))
+                                else:
+                                    print_empty.append(route_name)
+
+            if header_printed == 1:
+                print (bar)
 
 
 
