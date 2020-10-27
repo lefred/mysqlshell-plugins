@@ -34,11 +34,12 @@ def create(uri):
 
 
 @plugin_function("router.createRestUser")
-def createRestUser(session=None):
+def createRestUser(dedicated=False, session=None):
     """
     Create the MySQL Router REST API user in MySQL MetaData.
 
     Args:
+        dedicated (bool): create a dedicated user (only for advanced users)
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
     """
@@ -62,10 +63,18 @@ def createRestUser(session=None):
            print("ERROR: this is not a valid MySQL Server, no mysql_innodb_cluster_metada found!")
            return
     #get the current user connected
-    username = shell.parse_uri(session.uri)['user']
-    stmt = """REPLACE INTO mysql_innodb_cluster_metadata.router_rest_accounts VALUES
+    if dedicated:
+        username = shell.prompt("Enter the username: ")
+        auth_string = shell.prompt("Enter the authentication string (advanced user only): ")
+        stmt = """REPLACE INTO mysql_innodb_cluster_metadata.router_rest_accounts VALUES
+              ((SELECT cluster_id FROM mysql_innodb_cluster_metadata.v2_clusters LIMIT 1), "{}", "modular_crypt_format",
+                 "{}", NULL, NULL, NULL);""".format(username, auth_string)
+    else:
+        username = shell.parse_uri(session.uri)['user']
+        stmt = """REPLACE INTO mysql_innodb_cluster_metadata.router_rest_accounts VALUES
               ((SELECT cluster_id FROM mysql_innodb_cluster_metadata.v2_clusters LIMIT 1), "{}", "modular_crypt_format",
                  (SELECT authentication_string from mysql.user WHERE user="{}"), NULL, NULL, NULL);""".format(username, username)
+
     result = session.run_sql(stmt)
     if result:
         print("You can now use '{}' to authenticate to MySQL Router's REST API.".format(username))
