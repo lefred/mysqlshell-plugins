@@ -2,6 +2,7 @@
 # -------
 
 #from router import status as router_status
+import crypt
 from router.myrouter import MyRouter
 
 from mysqlsh.plugin_manager import plugin, plugin_function
@@ -34,12 +35,11 @@ def create(uri):
 
 
 @plugin_function("router.createRestUser")
-def createRestUser(dedicated=False, session=None):
+def createRestUser(session=None):
     """
     Create the MySQL Router REST API user in MySQL MetaData.
 
     Args:
-        dedicated (bool): create a dedicated user (only for advanced users)
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
     """
@@ -63,19 +63,22 @@ def createRestUser(dedicated=False, session=None):
            print("ERROR: this is not a valid MySQL Server, no mysql_innodb_cluster_metada found!")
            return
     #get the current user connected
-    if dedicated:
-        username = shell.prompt("Enter the username: ")
-        auth_string = shell.prompt("Enter the authentication string (advanced user only): ")
-        stmt = """REPLACE INTO mysql_innodb_cluster_metadata.router_rest_accounts VALUES
+    username = shell.prompt("Enter the username: ")
+    nok=True
+    while nok:
+        userpassword = shell.prompt("Enter the password: ",{'type': 'password'})
+        userpassword_check = shell.prompt("Enter the password again: ",{'type': 'password'})
+        if userpassword == userpassword_check:
+            nok=False
+        else:
+            print("Passwords do not match, try again !")
+
+    crypted_pwd = crypt.crypt(userpassword, crypt.mksalt(method=crypt.METHOD_SHA256))
+    stmt = """REPLACE INTO mysql_innodb_cluster_metadata.router_rest_accounts VALUES
               ((SELECT cluster_id FROM mysql_innodb_cluster_metadata.v2_clusters LIMIT 1), "{}", "modular_crypt_format",
-                 "{}", NULL, NULL, NULL);""".format(username, auth_string)
-    else:
-        username = shell.parse_uri(session.uri)['user']
-        stmt = """REPLACE INTO mysql_innodb_cluster_metadata.router_rest_accounts VALUES
-              ((SELECT cluster_id FROM mysql_innodb_cluster_metadata.v2_clusters LIMIT 1), "{}", "modular_crypt_format",
-                 (SELECT authentication_string from mysql.user WHERE user="{}"), NULL, NULL, NULL);""".format(username, username)
+                 "{}", NULL, NULL, NULL);""".format(username, crypted_pwd)
 
     result = session.run_sql(stmt)
     if result:
         print("You can now use '{}' to authenticate to MySQL Router's REST API.".format(username))
-        print("Use myrouter=router.create() to create an object to monitor.")
+        print("Use myrouter=router.create({}@<router IP>:8443) to create an object to monitor.".format(username))
