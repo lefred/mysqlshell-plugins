@@ -2,7 +2,7 @@ import mysqlsh
 import time
 import sys
 from mysqlsh import mysql
-
+shell = mysqlsh.globals.shell
 
 class ProxySQL:
     """
