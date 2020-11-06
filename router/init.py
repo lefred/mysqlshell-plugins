@@ -30,6 +30,7 @@ def create(uri):
     return {
          'connections': lambda route_to_find="": my_router.connections(route_to_find),
          'status': lambda: my_router.status(),
+         'blockedHosts': lambda: my_router.blocked_hosts(),
          'api': my_router.api
     }
 

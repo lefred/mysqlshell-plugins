@@ -120,6 +120,48 @@ class MyRouter:
             print (" Last Refresh Hostname: " + result_json['lastRefreshHostname'] \
                     + ":" + str(result_json['lastRefreshPort']))
 
+    def __cluster_all_routes_blocked_hosts(self):
+        result = self.__router_call("/routes")
+        if result:
+            l1 = l2 = 0
+            header_printed = 0
+            print_empty =[]
+            result_json = json.loads(result.content)
+            for item in result_json['items']:
+                    route_name = item['name']
+                    result_blocked = self.__router_call("/routes/%s/blockedHosts" % route_name)
+                    result_blocked_json = json.loads(result_blocked.content)
+                    if len(result_blocked_json['items']) > 0:
+                        if header_printed == 0:
+                            l1 = len(route_name)+2
+                            for entry in result_blocked_json['items']:
+                                l2_tmp = len(entry)
+                                if l2_tmp > l2: l2 = l2_tmp
+                            fmt = "| {0:"+str(l1)+"s} | {1:"+str(l2)+"s} |"
+                            header = fmt.format("Route", "Blocked Host")
+                            bar = "+" + "-" * (l1+2) + "+" + "-" * (l2+2) + "+"
+                            print (bar)
+                            print (header)
+                            print (bar)
+                            header_printed=1
+                        if len(print_empty) > 0:
+                            for routename in print_empty:
+                                print (fmt.format(routename, " "," ", " ", " ",  " "))
+                            print_empty.clear
+
+
+                        for entry in result_blocked_json['items']:
+                            print (fmt.format(route_name, entry))
+                            route_name=""
+                    else:
+                        if header_printed == 1:
+                            print (fmt.format(route_name, " "))
+                        else:
+                            print_empty.append(route_name)
+
+            if header_printed == 1:
+                print (bar)
+
     def __cluster_all_routes(self):
         result = self.__router_call("/routes")
         if result:
@@ -137,7 +179,7 @@ class MyRouter:
                             print("    * %s (dead)  :" % route_name)
                     result_config = self.__router_call("/routes/%s/config" % route_name)
                     result_config_json = json.loads(result_config.content)
-                    print("\tRouting Strategy: {}\tProtocol: {}".format(result_config_json['routingStrategy'], 
+                    print("\tRouting Strategy: {}\tProtocol: {}".format(result_config_json['routingStrategy'],
                                                                         result_config_json['protocol']))
                     result_status = self.__router_call("/routes/%s/status" % route_name)
                     result_status_json= json.loads(result_status.content)
@@ -170,5 +212,8 @@ class MyRouter:
 
     def connections(self, route_to_find=""):
         self.__cluster_routes(route_to_find)
+
+    def blocked_hosts(self):
+        self.__cluster_all_routes_blocked_hosts()
 
     api = "20190715"
