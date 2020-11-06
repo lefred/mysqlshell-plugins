@@ -71,6 +71,39 @@ $ git clone https://github.com/lefred/mysqlshell-plugins.git ~/.mysqlsh/plugins
 $ mkdir %AppData%\MySQL\mysqlsh\plugins
 $ git clone https://github.com/lefred/mysqlshell-plugins.git %AppData%\MySQL\mysqlsh\plugins
 ```
+## Missing Modules
+
+It might be possible that for some plugins, your are missing some modules. Usually it is ``python3-requests``.
+
+You can then just install it. However, on some systems, the version of Python 3 doesn't match the version
+linked with MySQL Shell. This is the case with OL7/OL8 where Python 3.6 is installed and MySQL Shell provides
+Python 3.8.
+
+If this is the case for you, you can install the missing modules within MySQL Shell too using ``mysqlsh --pum pip``.
+
+**Example with requests**:
+
+For the router and proxySQL plugin, ``requests`` is required, if you don't have it installed, when you start MySQL Shell, you
+will get this message:
+
+```
+Error importing module 'requests', check if it's installed (Python 3.7.7)
+```
+
+You have 2 options, install it system wide (available for all users), if you have root access, or just for your user:
+
+```
+$ sudo mysqlsh --pym pip install requests
+```
+
+or 
+
+```
+$ mysqlsh --pym pip install --user requests
+```
+
+That's it ! 
+
 
 ## Extending the MySQL Shell
 
