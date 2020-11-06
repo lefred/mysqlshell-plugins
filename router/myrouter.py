@@ -136,7 +136,9 @@ class MyRouter:
                     else:
                             print("    * %s (dead)  :" % route_name)
                     result_config = self.__router_call("/routes/%s/config" % route_name)
-                    print("\tRouting Strategy: {}\tMode: {}\tProtocol: {}".format(result_config['routingStrategy'], result_config['mode'], result_config['protocol']))
+                    result_config_json = json.loads(result_config.content)
+                    print("\tRouting Strategy: {}\tMode: {}\tProtocol: {}".format(result_config_json['routingStrategy'], 
+                           result_config_json['mode'], result_config_json['protocol']))
                     result_status = self.__router_call("/routes/%s/status" % route_name)
                     result_status_json= json.loads(result_status.content)
                     print("\tTotal Connections: %d\tActive Connections: %d\tBlocked Hosts: %d"
