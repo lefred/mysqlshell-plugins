@@ -81,4 +81,4 @@ def createRestUser(session=None):
     result = session.run_sql(stmt)
     if result:
         print("You can now use '{}' to authenticate to MySQL Router's REST API.".format(username))
-        print("Use myrouter=router.create({}@<router IP>:8443) to create an object to monitor.".format(username))
+        print("Use myrouter=router.create(\"{}@<router IP>:8443\") to create an object to monitor.".format(username))
