@@ -76,8 +76,8 @@ $ git clone https://github.com/lefred/mysqlshell-plugins.git %AppData%\MySQL\mys
 It might be possible that for some plugins, your are missing some modules. Usually it is ``python3-requests``.
 
 You can then just install it. However, on some systems, the version of Python 3 doesn't match the version
-linked with MySQL Shell. This is the case with OL7/OL8 where Python 3.6 is installed and MySQL Shell provides
-Python 3.8.
+linked with MySQL Shell. This is the case with OL7/OL8 where Python 3.6 is installed and MySQL Shell Enterprise build provides
+Python 3.7.
 
 If this is the case for you, you can install the missing modules within MySQL Shell too using ``mysqlsh --pum pip``.
 
