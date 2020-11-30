@@ -171,7 +171,7 @@ class ProxySQL:
                         if((select count(*) from performance_schema.replication_group_members
                                where MEMBER_STATE NOT IN ('ONLINE', 'RECOVERING')) <=
                             (select count(*) from performance_schema.replication_group_members)/2, "yes", "no") valid
-                        from performance_schema.replication_group_members where member_host=@@hostname);
+                        from performance_schema.replication_group_members where CAST(member_host AS char ascii)=CAST(@@hostname AS char ascii));
                     END""")
             result = session.run_sql("""DROP FUNCTION IF EXISTS sys.gr_transactions_behind""")
             result = session.run_sql("""CREATE FUNCTION sys.gr_transactions_behind()
