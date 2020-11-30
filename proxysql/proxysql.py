@@ -140,7 +140,7 @@ class ProxySQL:
         else:
             # check is we are on primary
             result = session.run_sql("""select member_role from performance_schema.replication_group_members
-            where member_host = @@hostname and member_role='PRIMARY'""")
+            where CAST(member_host AS char ascii) = CAST(@@hostname AS char ascii) and CAST(member_role AS char ascii) = CAST('PRIMARY' AS char ascii)""")
             if len(result.fetch_all()) == 0:
                 print("ERROR: Please connect or provide a session to the Primary Master.")
                 return
@@ -155,7 +155,7 @@ class ProxySQL:
         else:
             # check is we are on primary
             result = session.run_sql("""select member_role from performance_schema.replication_group_members
-            where member_host = @@hostname and member_role='PRIMARY'""")
+            where CAST(member_host AS char ascii) = CAST(@@hostname AS char ascii) and CAST(member_role AS char ascii) = CAST('PRIMARY' AS char ascii)""")
             if len(result.fetch_all()) == 0:
                 print("ERROR: Please connect or provide a session to the Primary Master.")
                 return
