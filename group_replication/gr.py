@@ -296,7 +296,7 @@ def i_create_or_add(ops, connectionStr, group_replication_group_name, group_repl
     if (ops == "ADD" or ops == "CLONE"):
         CA, CAP, local_hostname, local_port = i_sess_identity("current")
         x=shell.get_session()
-        y = shell.open_session(connectionStr)
+        y = shell.open_session(connectionStr, clusterAdminPassword)
         clusterAdmin = shell.parse_uri(y.get_uri())['user']
         shell.set_session(y)
         _check_report_host()
