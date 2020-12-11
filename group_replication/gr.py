@@ -1,5 +1,70 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
+import mysqlsh
+import time
 
+shell = mysqlsh.globals.shell
+
+clusterAdminPassword = None
+recovery_user = None
+recovery_password = None
+
+def _check_report_host():
+    result = shell.get_session().run_sql("SELECT @@report_host;").fetch_one()
+    answer = shell.prompt("The server reports as [{}], is this correct ? (Y/n) ".format(result[0]),{'defaultValue': "Y"}).upper()
+    if answer != 'Y':
+        newname = shell.prompt("Enter the hostname that should be used as report_host: ")
+        shell.get_session().run_sql("SET PERSIST_ONLY report_host='{}'".format(newname))
+        print("We need to RESTART MySQL...")
+        shell.get_session().run_sql("RESTART")
+        time.sleep(10)
+        shell.reconnect()
+
+def _check_distributed_recovery_user():
+    global recovery_user
+    global recovery_password
+    if not recovery_user:
+        recovery_user = shell.prompt("Which user do you want to use for distributed recovery ? ")
+        result = i_run_sql("select Repl_slave_priv from mysql.user where host='%' and user='{}'".format(recovery_user),"[']",False)
+        if len(result) == 0:
+            answer = shell.prompt("That user doesn't exist, do you want to create it ? (Y/n) ",{'defaultValue': "Y"}).upper()
+            if answer != "Y":
+               # aborting
+               recovery_user = None
+               recovery_password = None
+               return False
+            recovery_password2 = "a"
+            while recovery_password != recovery_password2:
+                recovery_password = shell.prompt("Enter the password for {} : ".format(recovery_user),{'type': 'password'})
+                recovery_password2 = shell.prompt("Confirm the password for {} : ".format(recovery_user),{'type': 'password'})
+                if recovery_password != recovery_password2:
+                    print("Passwords don't match, try again !")
+            #check is we are super read only
+            result = shell.get_session().run_sql("SELECT @@super_read_only;").fetch_one()
+            if result[0] == 1:
+                print("ERROR: the server is running in Super Read Only Mode, aborting !")
+                recovery_user = None
+                recovery_password = None
+                return False
+            shell.get_session().run_sql("CREATE USER {} IDENTIFIED BY '{}';".format(recovery_user, recovery_password))
+            shell.get_session().run_sql("GRANT REPLICATION SLAVE ON *.* TO {};".format(recovery_user))
+            shell.get_session().run_sql("GRANT BACKUP_ADMIN ON *.* TO {};".format(recovery_user))
+            return True
+        if result[0] == "N":
+            answer = shell.prompt("User {} doesn't have REPLICATION privilege, do you want to add it ? ",{'defaultValue': "Y"}).upper()
+            if answer == "N":
+                # aborting
+                return False
+            shell.get_session().run_sql("GRANT REPLICATION SLAVE ON *.* TO {};".format(recovery_user))
+        result = i_run_sql("select PRIV from mysql.global_grants where host='%' and user='{}'".format(recovery_user),"[']",False)
+        if result[0] == "0":
+            # We don't have backup admin priv
+            answer = shell.prompt("User {} doesn't have BACKUP_ADMIN privilege, do you want to add it ? ",{'defaultValue': "Y"}).upper()
+            if answer == "N":
+                # aborting
+                return False
+            shell.get_session().run_sql("GRANT BACKUP_ADMIN ON *.* TO {};".format(recovery_user))
+        recovery_password = shell.prompt("Enter the password for {}: ".format(recovery_user),{'type': 'password'})
+    return True
 
 
 def i_run_sql(query, strdel, getColumnNames):
@@ -19,12 +84,12 @@ def i_sess_identity(conn):
     clusterAdminPassword = ""
     if conn == "current":
         x = shell.parse_uri(shell.get_session().get_uri())
-        hostname = (i_run_sql("select @@hostname;","[']", False))[0]
+        hostname = x['host']
     else:
         z = shell.get_session()
         y = shell.open_session(conn)
         shell.set_session(y)
-        hostname = (i_run_sql("select @@hostname;","[']", False))[0]
+        hostname = shell.parse_uri(y.get_uri())['host']
         shell.set_session(z)
         x = shell.parse_uri(conn)
         clusterAdminPassword = x['password']
@@ -43,8 +108,6 @@ def status(session=None):
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
     """
-    shell = mysqlsh.globals.shell
-
     if session is None:
         session = shell.get_session()
         if session is None:
@@ -66,8 +129,6 @@ def showChannel(session=None):
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
     """
-    shell = mysqlsh.globals.shell
-
     if session is None:
         session = shell.get_session()
         if session is None:
@@ -89,8 +150,6 @@ def startChannel(channel_name, session=None):
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
     """
-
-    shell = mysqlsh.globals.shell
 
     if session is None:
         session = shell.get_session()
@@ -115,7 +174,6 @@ def stopChannel(channel_name, session=None):
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
     """
-    shell = mysqlsh.globals.shell
 
     if session is None:
         session = shell.get_session()
@@ -148,8 +206,8 @@ def i_get_other_node():
     host_list = result[0].strip("group_replication_group_seeds',").strip(" '").replace(",", " ").split()
     result = []
     for node in host_list:
-        if node != (hostname + ":" + port + "1"):
-            result.append(node[:-1])
+        if node != ("{}:{}".format(hostname, int(port) + 10)):
+            result.append(node)
     return result
 
 def i_comp_gtid(gtid1, gtid2):
@@ -180,22 +238,28 @@ def i_get_gr_seed():
     result = i_run_sql("show variables like 'group_replication_group_seeds'","['group_replication_group_seeds'",False)
     return result[0].strip(", '").strip("']")
 
-def i_set_grseed_replicas(gr_seed, clusterAdmin, clusterAdminPassword):
-    result = i_run_sql("set persist group_replication_group_seeds='" + gr_seed + "'","[']",False)
-    if clusterAdminPassword == "":
-        result = i_run_sql("CHANGE MASTER TO MASTER_USER='" + clusterAdmin + "' FOR CHANNEL 'group_replication_recovery';","[']",False)
-    else:
-        if i_check_group_replication_recovery() == "0":
-            result = i_run_sql("CHANGE MASTER TO MASTER_USER='" + clusterAdmin + "', MASTER_PASSWORD='" + clusterAdminPassword + "' FOR CHANNEL 'group_replication_recovery';","[']",False)
+def i_set_grseed_replicas(gr_seed, clusterAdmin):
+    global clusterAdminPassword
+    global recovery_user
+    global recovery_password
+    i_run_sql("set persist group_replication_group_seeds='" + gr_seed + "'","[']",False)
+    if not recovery_user:
+        result = _check_distributed_recovery_user()
+        if not result:
+            return False
+    i_run_sql("CHANGE MASTER TO MASTER_USER='{}', MASTER_PASSWORD='{}' FOR CHANNEL 'group_replication_recovery';".format(recovery_user, recovery_password),"[']",False)
+    return True
 
 def i_set_all_grseed_replicas(gr_seed, new_gr_seed, clusterAdmin, clusterAdminPassword):
     x=shell.get_session()
     for node in i_get_other_node():
-        y=shell.open_session(clusterAdmin + ":" + clusterAdminPassword + "@" + node)
+        host, port = node.split(':')
+        y=shell.open_session("{}@{}:{}".format(shell.parse_uri(x.get_uri())['user'],host, int(port)-10))
         shell.set_session(y)
-        i_set_grseed_replicas(new_gr_seed, clusterAdmin, clusterAdminPassword)
+        i_install_plugin("group_replication", "group_replication.so")
+        i_set_grseed_replicas(new_gr_seed, shell.parse_uri(x.get_uri())['user'] )
     shell.set_session(x)
-    i_set_grseed_replicas(new_gr_seed, clusterAdmin, clusterAdminPassword)
+    i_set_grseed_replicas(new_gr_seed, shell.parse_uri(x.get_uri())['user'])
 
 def i_get_host_port(connectionStr):
     if (connectionStr.find("@") != -1):
@@ -224,19 +288,28 @@ def i_start_gr_all(connectionStr):
         i_start_gr(False)
     shell.set_session(x)
 
-def i_create_or_add(ops, connectionStr, clusterAdmin, clusterAdminPassword, group_replication_group_name, group_replication_group_seeds):
+def i_create_or_add(ops, connectionStr, group_replication_group_name, group_replication_group_seeds):
+    global clusterAdminPassword
+    clusterAdmin = shell.parse_uri(shell.get_session().get_uri())['user']
+    if not clusterAdminPassword:
+       clusterAdminPassword = shell.prompt("Enter the password for {} : ".format(connectionStr),{'type': 'password'})
     if (ops == "ADD" or ops == "CLONE"):
         CA, CAP, local_hostname, local_port = i_sess_identity("current")
         x=shell.get_session()
-        y = shell.open_session(clusterAdmin + ":" + clusterAdminPassword + "@" + connectionStr[:-1])
+        y = shell.open_session(connectionStr)
+        clusterAdmin = shell.parse_uri(y.get_uri())['user']
         shell.set_session(y)
+        _check_report_host()
     i_install_plugin("group_replication", "group_replication.so")
     result = i_run_sql("set persist group_replication_group_name='" + group_replication_group_name + "'","[']",False)
     result = i_run_sql("set persist group_replication_start_on_boot='ON'","[']",False)
     result = i_run_sql("set persist group_replication_bootstrap_group=off","[']",False)
+    result = i_run_sql("set persist group_replication_recovery_use_ssl=1","[']",False)
     result = i_run_sql("set persist group_replication_ssl_mode='REQUIRED'","[']",False)
-    result = i_run_sql("set persist group_replication_local_address='" + connectionStr + "'","[']",False)
-    i_set_grseed_replicas(group_replication_group_seeds, clusterAdmin, clusterAdminPassword)
+    result = i_run_sql("set persist group_replication_local_address='{}:{}'".format(shell.parse_uri(shell.get_session().get_uri())['host'], int(shell.parse_uri(shell.get_session().get_uri())['port'])+10),"[']",False)
+    result = i_set_grseed_replicas(group_replication_group_seeds, clusterAdmin)
+    if not result:
+        return False
     if ops == "CLONE":
         i_clone(local_hostname + ":" + local_port,clusterAdmin,clusterAdminPassword)
         # i_remove_plugin("clone")
@@ -248,7 +321,7 @@ def i_create_or_add(ops, connectionStr, clusterAdmin, clusterAdminPassword, grou
         shell.set_session(x)
         #if ops == "CLONE":
         #    i_remove_plugin("clone")
-    return status()
+    return True
 
 def i_define_gr_name():
     result = i_run_sql("select uuid()","[']",False)
@@ -269,7 +342,6 @@ def i_remove_plugin(plugin_name):
         result = i_run_sql("uninstall PLUGIN " + plugin_name + ";","[']",False)
 
 def i_clone(source, cloneAdmin, cloneAdminPassword):
-    import time
     clusterAdmin, clusterAdminPassword, hostname, port = i_sess_identity("current")
     i_install_plugin("clone", "mysql_clone.so")
     result = i_run_sql("set global clone_valid_donor_list='" + source + "';","", False)
@@ -286,11 +358,15 @@ def create():
     This function creates a Group Replication environment
 
     """
-
+    _check_report_host()
     clusterAdmin, clusterAdminPassword, hostname, port = i_sess_identity("current")
-    gr_seed = hostname + ":" + port + "1"
-    i_create_or_add("CREATE",gr_seed,clusterAdmin, clusterAdminPassword, i_define_gr_name(), gr_seed)
-    return status()
+    gr_seed = "{}:{}".format(hostname, int(port) + 10)
+    result = i_create_or_add("CREATE",gr_seed, i_define_gr_name(), gr_seed)
+    if result:
+        return status()
+    else:
+        print("ERROR: Group Replication Creation Aborted !")
+        return
 
 @plugin_function("group_replication.addInstance")
 def addInstance(connectionStr):
@@ -305,11 +381,11 @@ def addInstance(connectionStr):
     clusterAdmin, clusterAdminPassword, hostname, port = i_sess_identity("current")
     print("A new instance will be added to the Group Replication. Depending on the amount of data on the group this might take from a few seconds to several hours.")
     print(" ")
-    if (connectionStr.count(':') == 1):
-        clusterAdminPassword = shell.prompt('Please provide the password for ' + connectionStr + ': ',{"type":"password"})
-    else:
-        clusterAdminPassword = ((connectionStr.replace(":"," ")).replace("@", " ")).split()[1]
-    clone_sts = shell.prompt("Please select a recovery method [C]lone/[I]ncremental recovery/[A]bort (default Clone): ")
+    #if (connectionStr.count(':') == 1):
+    #    clusterAdminPassword = shell.prompt('Please provide the password for ' + connectionStr + ': ',{"type":"password"})
+    #else:
+    #    clusterAdminPassword = ((connectionStr.replace(":"," ")).replace("@", " ")).split()[1]
+    clone_sts = shell.prompt("Please select a recovery method [C]lone/[I]ncremental recovery/[A]bort (default Clone): ").upper()
     if (clone_sts == "C" or clone_sts == "" or clone_sts == " "):
         clone_sts = "CLONE"
     else:
@@ -320,7 +396,9 @@ def addInstance(connectionStr):
             print("Adding instance is aborted")
     if clone_sts != "A":
         old_gr_seed = i_get_gr_seed()
-        add_gr_seed = i_get_host_port(connectionStr) + "1"
+        #add_gr_node = "{}:{}".format(i_get_host_port(connectionStr).split(':')[0], int(i_get_host_port(connectionStr).split(':')[1]))
+        add_gr_node = connectionStr
+        add_gr_seed = "{}:{}".format(i_get_host_port(connectionStr).split(':')[0], int(i_get_host_port(connectionStr).split(':')[1])+10)
         if old_gr_seed.find(add_gr_seed) != -1:
             new_gr_seed = old_gr_seed
         else:
@@ -328,7 +406,7 @@ def addInstance(connectionStr):
         if clone_sts == "CLONE":
             i_install_plugin("clone", "mysql_clone.so")
         i_set_all_grseed_replicas(old_gr_seed, new_gr_seed, clusterAdmin, clusterAdminPassword)
-        i_create_or_add(clone_sts,add_gr_seed,clusterAdmin,clusterAdminPassword,i_get_gr_name(), new_gr_seed)
+        i_create_or_add(clone_sts,add_gr_node,i_get_gr_name(), new_gr_seed)
     return status()
 
 @plugin_function("group_replication.convertToIC")
@@ -415,8 +493,6 @@ def replicateFromIC(channel_name, router_host, router_port_number, session=None)
             database. If omitted the MySQL Shell's current session will be used.
     """
     import time
-
-    shell = mysqlsh.globals.shell
 
     if session is None:
         session = shell.get_session()
