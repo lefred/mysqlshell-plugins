@@ -282,17 +282,46 @@ def i_get_host_port(connectionStr):
         connectionStr = hostname + ":" + port
     return connectionStr
 
+def _check_session_cred(uri):
+    tofind = uri
+    if '/' in uri:
+        tofind = uri.split('/')[2]
+    #print(uri)
+    if tofind not in shell.list_credentials():
+        print("%s is not stored in your Shell Credentials")
+        answer = shell.prompt(
+            'Do you want to connect to it now ? (Y/n) ', {'defaultValue': 'y'})
+        if answer.lower() == 'y':
+            session_sec = shell.connect(uri)
+            session_sec.close()
+    return
+
+
 @plugin_function("group_replication.setPrimaryInstance")
 def setPrimaryInstance(connectionStr):
+    """
+    Promote a new instance to as Primary member.
+
+    This function promote a new leader in Group Replication
+
+    Args:
+        connectionStr (string): The connection string of the new Primary
+    """
+
     x=shell.get_session()
+    # get current user
+    cp_user = shell.parse_uri(x.get_uri())['user']
+    # check if another user was provided in the connectionStr
+    if 'user' in shell.parse_uri(connectionStr):
+        cp_user = shell.parse_uri(connectionStr)['user']
     connectionStr = i_get_host_port(connectionStr)
 
     if i_check_local_role() != "PRIMARY":
         current_primary = i_run_sql("select concat(member_host,':',member_port) from performance_schema.replication_group_members where channel_name='group_replication_applier' and member_role='PRIMARY'","[']",False)
-        cp_user=shell.prompt('Please provide user to connect to current PRIMARY node (' + current_primary[0] + '): ')
-        pp_user=shell.prompt('Please provide password to connect to current PRIMARY node (' + current_primary[0] + '): ', {"type":"password"})
+        # search in the stored credentials
+        _check_session_cred(cp_user + '@' + connectionStr)
         try:
-            c=shell.open_session(cp_user + ':' + pp_user + '@' + current_primary[0])
+            c=shell.open_session(cp_user + '@' + current_primary[0])
             shell.set_session(c)
         except:
             shell.set_session(x)
