@@ -453,6 +453,7 @@ def addInstance(connectionStr):
     Args:
         connectionStr (string): uri clusterAdmin:clusterAdminPassword@hostname:port
     """
+    global clusterAdminPassword
     clusterAdmin, clusterAdminPassword, hostname, port = i_sess_identity("current")
     print("A new instance will be added to the Group Replication. Depending on the amount of data on the group this might take from a few seconds to several hours.")
     print(" ")
@@ -480,19 +481,21 @@ def addInstance(connectionStr):
             new_gr_seed = old_gr_seed + "," + add_gr_seed
         if clone_sts == "CLONE":
             i_install_plugin("clone", "mysql_clone.so")
-
+        x=shell.get_session()
+        cp_user = shell.parse_uri(x.get_uri())['user']
+        if 'user' in shell.parse_uri(connectionStr):
+            cp_user = shell.parse_uri(connectionStr)['user']
         # checking if the new instance is running
         if clusterAdminPassword == "":
-            clusterAdminPassword = shell.prompt('Please provide password for ' + i_get_host_port(connectionStr) + ': ',{"type":"password"})
-        x=shell.get_session()
+            clusterAdminPassword = shell.prompt('Please provide password for ' + cp_user + "@" + i_get_host_port(connectionStr) + ': ',{"type":"password"})
         try:
-            y=shell.open_session(clusterAdmin + ":" + clusterAdminPassword + "@" + i_get_host_port(connectionStr))
+            y=shell.open_session(cp_user + ":" + clusterAdminPassword + "@" + i_get_host_port(connectionStr))
             shell.set_session(y)
             shell.set_session(x)
-            i_set_all_grseed_replicas(old_gr_seed, new_gr_seed, clusterAdmin, clusterAdminPassword)
+            i_set_all_grseed_replicas(old_gr_seed, new_gr_seed, cp_user, clusterAdminPassword)
             i_create_or_add(clone_sts,add_gr_node,i_get_gr_name(), new_gr_seed)
         except:
-            print("ERROR: the new server is not running, aborting !")
+            print("ERROR: the new server is not running, or credentials are wrong or it's not well configured, aborting !")
 
     return status()
 
