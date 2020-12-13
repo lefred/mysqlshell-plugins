@@ -537,7 +537,7 @@ def rebootGRFromCompleteOutage():
 def editChannel(channel_name, endpoint_host, endpoint_port_number, session=None):
 
     import time
-    
+
     if session is None:
         session = shell.get_session()
         if session is None:
@@ -546,7 +546,7 @@ def editChannel(channel_name, endpoint_host, endpoint_port_number, session=None)
             return
 
     stopChannel(channel_name)
-    addChannel(channel_name, endpoint_host, endpoint_port_number)    
+    addChannel(channel_name, endpoint_host, endpoint_port_number)
     startChannel(channel_name)
     return showChannel()
 
@@ -576,7 +576,7 @@ def addChannel(channel_name, router_host, router_port_number, session=None):
     clusterAdmin, clusterAdminPassword, hostname, port = i_sess_identity("current")
     remote_user = shell.prompt('Please provide user to connect to remote database : ')
     remote_password = shell.prompt("Please provide password for '" + remote_user + "': '",{"type":"password"})
-    
+
     # Create group replication's replication metadata schema on other cluster
     x=shell.get_session()
     try:
@@ -589,7 +589,7 @@ def addChannel(channel_name, router_host, router_port_number, session=None):
         result = i_run_sql("grant all privileges on mysql_gr_replication_metadata.* to " + clusterAdmin, "", False)
     except:
         print('ERROR: Remote database does not exist or this user does not have create database privileges')
-        print("Mandatory Requirement for Replication between InnoDB Cluster and Group Replication : both clusters have to use same cluster user") 
+        print("Mandatory Requirement for Replication between InnoDB Cluster and Group Replication : both clusters have to use same cluster user")
         shell.set_session(x)
         return
 
@@ -597,8 +597,8 @@ def addChannel(channel_name, router_host, router_port_number, session=None):
     print('INFO: mysql_gr_replication_metadata schema is installed on remote database')
     print('INFO: configuring replication channel ...')
     if clusterAdminPassword == "":
-        clusterAdminPassword = shell.prompt("Please provide password for local user '" + clusterAdmin + "' : ", {"type":"password"}) 
-   
+        clusterAdminPassword = shell.prompt("Please provide password for local user '" + clusterAdmin + "' : ", {"type":"password"})
+
     for node in i_get_other_node():
         print("Configuring replication channel on '" + shell.parse_uri(node)["host"] + ":" + str(shell.parse_uri(node)["port"] - 10))
         y=shell.open_session(clusterAdmin + ":" + clusterAdminPassword + "@" + shell.parse_uri(node)["host"] + ":" + str(shell.parse_uri(node)["port"] - 10))
@@ -609,17 +609,17 @@ def addChannel(channel_name, router_host, router_port_number, session=None):
     result = i_run_sql("change master to master_host='" + router_host + "', master_port=" + router_port + ", master_user='" + clusterAdmin + "', master_password='" + clusterAdminPassword + "', master_ssl=1, master_auto_position=1, get_master_public_key=1 for channel '" + channel_name + "'", "", False)
     print("INFO: Starting replication from " + router_host + ":" + router_port + " ...")
     result = i_run_sql("start replica for channel '" + channel_name + "'", "", False)
-    
+
     print('INFO: Waiting for mysql_gr_replication_metadata being replicated ...')
     is_schema_exist=0
     while is_schema_exist != 1:
         result = i_run_sql("select schema_name from information_schema.schemata where schema_name='mysql_gr_replication_metadata';","",False)
         if len(result) != 0:
             is_schema_exist=1
-    
+
     time.sleep(10)
     print('INFO: mysql_gr_replication_metadata schema is replicated successfuly. An event will be created')
-  
+
     try:
         result = i_run_sql("create event if not exists mysql_gr_replication_metadata." + channel_name + " ON SCHEDULE every 2 second do start replica for channel '" + channel_name + "';", "", False)
         print('INFO: An event is created to monitor channel ' + channel_name)
@@ -627,7 +627,7 @@ def addChannel(channel_name, router_host, router_port_number, session=None):
         print('WARNING: mysql_gr_replication_metadata schema does not exist.')
     return print("All nodes have this replication channel")
 
-@plugin_function("group_replication.innodb_cluster_create_repl_usr")
+@plugin_function("group_replication.innodbClusterCreateReplUser")
 def innodb_cluster_create_repl_usr(repl_user):
     try:
       dba.get_cluster()
@@ -640,10 +640,10 @@ def innodb_cluster_create_repl_usr(repl_user):
         print('ERROR: Running this function on a Group Replication is prohibited')
         print('ERROR: Check if your connection ' +  str(shell.get_session()) + ' has sufficient privileges to configure this user')
         print('INFO: Try to run this function using root user')
-     
+
 @plugin_function("group_replication.flipClusterRoles")
 def flipClusterRoles(cluster_name):
-   
+
     try:
         dba.get_cluster()
         v_continue = 0
@@ -660,7 +660,7 @@ def flipClusterRoles(cluster_name):
         channel_name=result[0]
     except:
         print("ERROR: replication from InnoDB Cluster is not set")
-        return 
+        return
 
     try:
         result = i_run_sql("select repl_user from mysql_gr_replication_metadata.channel;","[']",False)
@@ -702,7 +702,7 @@ def flipClusterRoles(cluster_name):
     print("############################## STEP 1 : Set Replication directly to PRIMARY node ##############################")
     editChannel(channel_name,remote_primary_host,remote_primary_port)
     print("INFO: End of Step 1 \n")
-    
+
     print("############################# STEP 2 : Convert remote cluster to Group Replication ############################")
     print('INFO: Connect to Primary node of remote InnoDB Cluster')
     clusterAdmin, clusterAdminPassword, hostname, port = i_sess_identity("current")
@@ -714,13 +714,13 @@ def flipClusterRoles(cluster_name):
         print('ERROR: unable to connect to remote primary host')
         shell.set_session(x)
         return
-    
+
     adoptFromIC()
 
     shell.set_session(x)
     print('INFO: Stop replication channel ' + channel_name + ' on local instance')
     stopChannel(channel_name)
-    
+
     print("########################## STEP 3 : Set replication from remote cluster to this node ##########################")
     shell.set_session(y)
     addChannel(channel_name,hostname,port)
