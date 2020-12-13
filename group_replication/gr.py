@@ -332,6 +332,7 @@ def setPrimaryInstance(connectionStr):
     if len(new_primary) == 0:
         new_primary = i_run_sql("SELECT member_id FROM performance_schema.replication_group_members where channel_name='group_replication_applier' and concat(member_host,':',member_port)='127.0.0.1:" + str(shell.parse_uri(connectionStr)['port']) +"'","[']",False)
 
+    shell.set_session(x)
     start_channel_name=[]
     try:
         if len(i_list_all_channel()) != 0:
@@ -511,7 +512,7 @@ def convertToIC(clusterName):
     if i_check_local_role() == "PRIMARY":
         i_stop_other_replicas()
         i_drop_ic_metadata()
-        dba.create_cluster(clusterName, {"adoptFromGR":True})
+        mysqlsh.globals.dba.create_cluster(clusterName, {"adoptFromGR":True})
         msg_output = "Successful conversion from Group Replication to InnoDB Cluster"
     else:
         msg_output = "FAILED - Instance is not PRIMARY"
@@ -528,7 +529,7 @@ def adoptFromIC():
        clusterAdmin, clusterAdminPassword, hostname, port = i_sess_identity("current")
        # clusterAdminPassword = shell.prompt('Please provide password for Cluster Admin: ',{"type":"password"})
        host_list = i_get_other_node()
-       dba.get_cluster().dissolve({"interactive":False})
+       mysqlsh.globals.dba.get_cluster().dissolve({"interactive":False})
        create()
        if len(host_list) != 0:
            for secNode in host_list:
@@ -662,7 +663,7 @@ def addChannel(channel_name, router_host, router_port_number, session=None):
 @plugin_function("group_replication.innodbClusterCreateReplUser")
 def innodb_cluster_create_repl_usr(repl_user):
     try:
-      dba.get_cluster()
+      mysqlsh.globals.dba.get_cluster()
       user_password = shell.prompt("Please provide password for '" + repl_user + "' : ", {"type":"password"})
       result = i_run_sql("create user if not exists " + repl_user + " identified by '" + user_password + "'", "" , False)
       result = i_run_sql("grant replication slave on *.* to " + repl_user + "@'%';", "", False)
@@ -677,7 +678,7 @@ def innodb_cluster_create_repl_usr(repl_user):
 def flipClusterRoles(cluster_name):
 
     try:
-        dba.get_cluster()
+        mysqlsh.globals.dba.get_cluster()
         v_continue = 0
     except:
         v_continue = 1
