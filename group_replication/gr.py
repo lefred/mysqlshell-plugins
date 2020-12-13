@@ -81,7 +81,7 @@ def i_run_sql(query, strdel, getColumnNames):
     return list_output
 
 def i_sess_identity(conn):
-    clusterAdminPassword = ""
+    global clusterAdminPassword
     if conn == "current":
         x = shell.parse_uri(shell.get_session().get_uri())
         hostname = x['host']
@@ -250,16 +250,17 @@ def i_get_gr_seed():
     result = i_run_sql("show variables like 'group_replication_group_seeds'","['group_replication_group_seeds'",False)
     return result[0].strip(", '").strip("']")
 
-def i_set_grseed_replicas(gr_seed, clusterAdmin):
+def i_set_grseed_replicas(gr_seed, clusterAdmin, ops=None):
     global clusterAdminPassword
     global recovery_user
     global recovery_password
     i_run_sql("set persist group_replication_group_seeds='" + gr_seed + "'","[']",False)
-    if not recovery_user:
-        result = _check_distributed_recovery_user()
-        if not result:
-            return False
-    i_run_sql("CHANGE MASTER TO MASTER_USER='{}', MASTER_PASSWORD='{}' FOR CHANNEL 'group_replication_recovery';".format(recovery_user, recovery_password),"[']",False)
+    if ops == 'CREATE':
+        if not recovery_user:
+            result = _check_distributed_recovery_user()
+            if not result:
+                return False
+        i_run_sql("CHANGE MASTER TO MASTER_USER='{}', MASTER_PASSWORD='{}' FOR CHANNEL 'group_replication_recovery';".format(recovery_user, recovery_password),"[']",False)
     return True
 
 def i_set_all_grseed_replicas(gr_seed, new_gr_seed, clusterAdmin, clusterAdminPassword):
@@ -370,8 +371,11 @@ def i_start_gr_all(connectionStr):
 def i_create_or_add(ops, connectionStr, group_replication_group_name, group_replication_group_seeds):
     global clusterAdminPassword
     clusterAdmin = shell.parse_uri(shell.get_session().get_uri())['user']
+    # check if another user was provided in the connectionStr
+    if 'user' in shell.parse_uri(connectionStr):
+        clusterAdmin = shell.parse_uri(connectionStr)['user']
     if not clusterAdminPassword:
-       clusterAdminPassword = shell.prompt("Enter the password for {} : ".format(connectionStr),{'type': 'password'})
+       clusterAdminPassword = shell.prompt("Enter the password for {}@{}: ".format(clusterAdmin,connectionStr),{'type': 'password'})
     if (ops == "ADD" or ops == "CLONE"):
         CA, CAP, local_hostname, local_port = i_sess_identity("current")
         x=shell.get_session()
@@ -387,7 +391,7 @@ def i_create_or_add(ops, connectionStr, group_replication_group_name, group_repl
     result = i_run_sql("set persist group_replication_recovery_use_ssl=1","[']",False)
     result = i_run_sql("set persist group_replication_ssl_mode='REQUIRED'","[']",False)
     result = i_run_sql("set persist group_replication_local_address='{}:{}'".format(shell.parse_uri(shell.get_session().get_uri())['host'], int(shell.parse_uri(shell.get_session().get_uri())['port'])+10),"[']",False)
-    result = i_set_grseed_replicas(group_replication_group_seeds, clusterAdmin)
+    result = i_set_grseed_replicas(group_replication_group_seeds, clusterAdmin, ops)
     if not result:
         return False
     if ops == "CLONE":
@@ -487,7 +491,7 @@ def addInstance(connectionStr):
         if 'user' in shell.parse_uri(connectionStr):
             cp_user = shell.parse_uri(connectionStr)['user']
         # checking if the new instance is running
-        if clusterAdminPassword == "":
+        if not clusterAdminPassword:
             clusterAdminPassword = shell.prompt('Please provide password for ' + cp_user + "@" + i_get_host_port(connectionStr) + ': ',{"type":"password"})
         try:
             y=shell.open_session(cp_user + ":" + clusterAdminPassword + "@" + i_get_host_port(connectionStr))
