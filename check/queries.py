@@ -3,6 +3,9 @@ from mysqlsh_plugins_common import run_and_show
 
 def _get_full_details(shell, session, original_query, schema):
        old_schema=None
+       if shell.parse_uri(session.get_uri())['scheme'] != "mysqlx":
+           print("\nFor more details, please use a MySQL X connection.")
+           return
        if session.get_current_schema() is None: 
            old_schema=None
            session.set_current_schema(schema)
