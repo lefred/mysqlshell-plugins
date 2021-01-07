@@ -69,45 +69,44 @@ class MyRouter:
                         result_item = self.__router_call("/routes/%s/connections" % route_name)
                         result_item_json = json.loads(result_item.content)
                         if len(result_item_json['items']) > 0:
-                            if header_printed == 0:
-                                l1 = len(route_name)+2
-                                for entry in result_item_json['items']:
-                                    l2_tmp = len(entry['sourceAddress'])
-                                    if l2_tmp > l2: l2 = l2_tmp
-                                    l3_tmp = len(entry['destinationAddress'])
-                                    if l3_tmp > l3: l3 = l3_tmp
-                                    l4_tmp = len(str(entry['bytesFromServer']))
-                                    if l4_tmp > l4: l4 = l4_tmp
-                                    l5_tmp = len(str(entry['bytesToServer']))
-                                    if l5_tmp > l5: l5 = l5_tmp
-                                    l6_tmp = len(entry['timeStarted'])
-                                    if l6_tmp > l6: l6 = l6_tmp
-                                fmt = "| {0:"+str(l1)+"s} | {1:"+str(l2)+"s} | {2:"+str(l3)+"s} | {3:>"+str(l4)+"s} | {4:>"+str(l5)+"s} | {5:"+str(l6)+"s} |"
-                                header = fmt.format("Route", "Source", "Destination", "From Server", "To Server", "Connection Started")
-                                bar = "+" + "-" * (l1+2) + "+" + "-" * (l2+2) + "+" + "-" * (l3+2) + "+" + "-" * (l4+2) + "+" + "-" * (l5+2) + "+" + "-" * (l6+2) + "+"
-                                print (bar)
-                                print (header)
-                                print (bar)
-                                header_printed=1
+                            l1 = len(route_name)+2
+                            for entry in result_item_json['items']:
+                                l2_tmp = len(entry['sourceAddress'])
+                                if l2_tmp > l2: l2 = l2_tmp
+                                l3_tmp = len(entry['destinationAddress'])
+                                if l3_tmp > l3: l3 = l3_tmp
+                                l4_tmp = len(str(entry['bytesFromServer']))
+                                if l4_tmp > l4: l4 = l4_tmp
+                                l5_tmp = len(str(entry['bytesToServer']))
+                                if l5_tmp > l5: l5 = l5_tmp
+                                l6_tmp = len(entry['timeStarted'])
+                                if l6_tmp > l6: l6 = l6_tmp
+                            fmt = "| {0:"+str(l1)+"s} | {1:"+str(l2)+"s} | {2:"+str(l3)+"s} | {3:>"+str(l4)+"s} | {4:>"+str(l5)+"s} | {5:"+str(l6)+"s} |"
+                            header = fmt.format("Route", "Source", "Destination", "From Server", "To Server", "Connection Started")
+                            bar = "+" + "-" * (l1+2) + "+" + "-" * (l2+2) + "+" + "-" * (l3+2) + "+" + "-" * (l4+2) + "+" + "-" * (l5+2) + "+" + "-" * (l6+2) + "+"
+            print (bar)
+            print (header)
+            print (bar)
+            header_printed=1
+            for item in result_json['items']:
+                    route_name = item['name']
+                    if route_to_find in route_name:
+                        result_item = self.__router_call("/routes/%s/connections" % route_name)
+                        result_item_json = json.loads(result_item.content)
+                        if len(result_item_json['items']) > 0:
                             if len(print_empty) > 0:
                                 for routename in print_empty:
-                                  print (fmt.format(routename, " "," ", " ", " ",  " "))
-                                print_empty.clear
-
-
+                                    print (fmt.format(routename, " "," ", " ", " ",  " "))
+                                    print_empty.clear
                             for entry in result_item_json['items']:
                                 print (fmt.format(route_name, entry['sourceAddress'], entry['destinationAddress'],
                                 str(self.__format_bytes(entry['bytesFromServer'])),
                                 str(self.__format_bytes(entry['bytesToServer'])), entry['timeStarted']))
                                 route_name=""
                         else:
-                                if header_printed == 1:
-                                    print (fmt.format(route_name, " "," ", " ", " ",  " "))
-                                else:
-                                    print_empty.append(route_name)
+                            print (fmt.format(route_name, " "," ", " ", " ",  " "))
 
-            if header_printed == 1:
-                print (bar)
+                    print (bar)
 
 
 
@@ -123,7 +122,7 @@ class MyRouter:
     def __cluster_all_routes_blocked_hosts(self):
         result = self.__router_call("/routes")
         if result:
-            l1 = l2 = 0
+            l1 = l2 = 17
             header_printed = 0
             print_empty =[]
             result_json = json.loads(result.content)
@@ -138,29 +137,29 @@ class MyRouter:
                                 l2_tmp = len(entry)
                                 if l2_tmp > l2: l2 = l2_tmp
                             fmt = "| {0:"+str(l1)+"s} | {1:"+str(l2)+"s} |"
-                            header = fmt.format("Route", "Blocked Host")
+                            header = fmt.format("Route", "Blocked Host(s)")
                             bar = "+" + "-" * (l1+2) + "+" + "-" * (l2+2) + "+"
-                            print (bar)
-                            print (header)
-                            print (bar)
-                            header_printed=1
+            print (bar)
+            print (header)
+            print (bar)
+            header_printed=1
+            for item in result_json['items']:
+                    route_name = item['name']
+                    result_blocked = self.__router_call("/routes/%s/blockedHosts" % route_name)
+                    result_blocked_json = json.loads(result_blocked.content)
+                    if len(result_blocked_json['items']) > 0:
                         if len(print_empty) > 0:
                             for routename in print_empty:
                                 print (fmt.format(routename, " "," ", " ", " ",  " "))
-                            print_empty.clear
-
+                                print_empty.clear
 
                         for entry in result_blocked_json['items']:
                             print (fmt.format(route_name, entry))
                             route_name=""
                     else:
-                        if header_printed == 1:
-                            print (fmt.format(route_name, " "))
-                        else:
-                            print_empty.append(route_name)
+                        print (fmt.format(route_name, " "," ", " ", " ",  " "))
 
-            if header_printed == 1:
-                print (bar)
+                    print (bar)
 
     def __cluster_all_routes(self):
         result = self.__router_call("/routes")
