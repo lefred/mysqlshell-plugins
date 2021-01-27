@@ -1,4 +1,5 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
+from schema.utils import __returnDefaults
 
 @plugin_function("schema_utils.showDefaults")
 def show_defaults(table, schema=None, session=None):
