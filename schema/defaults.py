@@ -1,4 +1,6 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
+from schema import utils
+
 
 @plugin_function("schema_utils.showDefaults")
 def show_defaults(table, schema=None, session=None):
@@ -31,7 +33,7 @@ def show_defaults(table, schema=None, session=None):
             return
         schema = session.current_schema.name
 
-    defaults = __returnDefaults(session, schema, table)
+    defaults = utils.__returnDefaults(session, schema, table)
 
     fmt = "| {0:30s} | {1:15s} | {2:50s} | {3:25s} |"
     header = fmt.format("ColumnName", "Type", "Default", "Example")

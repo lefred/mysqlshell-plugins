@@ -1,4 +1,5 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
+from schema import utils
 
 @plugin_function("schema_utils.showInvalidDates")
 def show_invalid_dates(table=None, schema=None, session=None):
@@ -23,7 +24,7 @@ def show_invalid_dates(table=None, schema=None, session=None):
                   "function or connect the shell to a database")
             return
 
-    queries = __returnChecks(session, schema, table)
+    queries = utils.__returnChecks(session, schema, table)
 
     fmt = "| {0:30s} | {1:15s} | {2:10s} | {3:15s} |"
     header = fmt.format("Schema and Table", "Column", "Type", "# Invalid")

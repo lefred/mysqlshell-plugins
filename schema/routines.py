@@ -1,4 +1,5 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
+from schema import utils
 
 @plugin_function("schema_utils.showRoutines")
 def show_routines(schema=None, session=None):
@@ -25,7 +26,7 @@ def show_routines(schema=None, session=None):
         if session.current_schema is None:
             schema = session.current_schema.name
 
-    procedures = __returnRoutines(session, schema)
+    procedures = utils.__returnRoutines(session, schema)
 
     fmt = "| {0:20s} | {1:20s} | {2:10s} | {3:25s} |"
     header = fmt.format("Schema", "Name", "Type", "Definer")
