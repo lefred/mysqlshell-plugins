@@ -90,6 +90,7 @@ def show_cluster_error_log(limit=10, type="all", subsystem="all", session=None):
     for entry in out:
         print(entry)
     i=0
+    print()
     print("Legend:")
     print("-------")
     for second_mem in secondaries:
