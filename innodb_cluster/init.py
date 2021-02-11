@@ -11,3 +11,4 @@ class innodb_cluster:
     """
 
 from innodb_cluster import secondary
+from innodb_cluster import logs

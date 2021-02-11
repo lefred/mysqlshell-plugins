@@ -6,7 +6,7 @@ class config:
     """
     MySQL configuration utility.
 
-    A collection of tools to perform get information on your
+    A collection of tools to get information on your
     MySQL Database Server's configuration variables.
     """
 
