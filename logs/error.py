@@ -35,7 +35,7 @@ def get_error_log_config(session=None):
 
     return
 
-@plugin_function("logs.setErrorLogVersbosiy")
+@plugin_function("logs.setErrorLogVersbosity")
 def set_error_log_verbosity(value=3, persist=False, session=None):
     """
     Set the values of Error Log Verbosity.
