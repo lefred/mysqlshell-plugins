@@ -316,7 +316,7 @@ def get_error_log_by_time(start="1 hour ago", limit=10, type="all", subsystem="a
         print("ERROR: impossible to parse [{}] and transform it into a valid datetime!".format(start))
         return
     if (datetime.datetime.now()-start_time).days >= 1 and not (("hours" in start or "h " in start) and "ago" in start):
-        start_time=start_time.strftime("%Y-%m-%d")
+        start_time=datetime.datetime.strptime(start_time.strftime("%Y-%m-%d"), "%Y-%m-%d")
 
     if start.lower() == "today":
         start_time=start_time.strftime("%Y-%m-%d")
