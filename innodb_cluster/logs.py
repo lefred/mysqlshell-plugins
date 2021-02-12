@@ -212,6 +212,8 @@ def tail_cluster_error_log(limit=10, type="all", subsystem="all", refresh=1, ses
                     rows = result.fetch_all()
                     for row in rows:
                         color = color_tab[i]
+                        if row[2] == 'Error':
+                            color += '\033[41m'
                         out.append("{}{} {} [{}] [{}] [{}] {}\033[0m".format(row[0], color, row[1], row[2], row[3], row[4], row[5]))
                         if not last_date:
                             last_date = row[0]
