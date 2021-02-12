@@ -251,13 +251,13 @@ def tail_error_log(limit=10, type="all", subsystem="all", refresh=1, session=Non
 
 
 @plugin_function("logs.getErrorLogByTime")
-def get_error_log_by_time(start="1 hour ago", limit=10, type="all", subsystem="all", format="table", session=None):
+def get_error_log_by_time(start="1 hour ago", limit=0, type="all", subsystem="all", format="table", session=None):
     """
     Get Errog Log from a specific time
 
     Args:
         start (string): Start time from when you retrieve errors
-        limit (integer): The amount of lines to display. 0 means no limit. Default: 10.
+        limit (integer): The amount of lines to display. 0 means no limit. Default: 0.
         type (string): The type of error entries. Valid values are 'all', 'system', 'error', 'warning' and 'note'.
                        Default is 'all'.
         subsystem (string): Filter the entries to only get this specific subsystem. Default is 'all'.
@@ -324,17 +324,21 @@ def get_error_log_by_time(start="1 hour ago", limit=10, type="all", subsystem="a
     where_str = 'WHERE LOGGED >= "{}" '.format(str(start_time))
 
     stmt = """(SELECT * FROM performance_schema.error_log {} {} {}
-               ORDER BY LOGGED DESC {}) ORDER BY LOGGED""".format(where_str, type_str, subsystem_str, limit_str)
+               ORDER BY LOGGED {}) ORDER BY LOGGED""".format(where_str, type_str, subsystem_str, limit_str)
 
-    log_stmt = "SELECT VARIABLE_VALUE FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Uptime';"
+    log_stmt = """SELECT LOGGED
+                  FROM performance_schema.error_log"""
     result = session.run_sql(log_stmt)
     row = result.fetch_one()
+    first_entry = row[0]
 
     print("GETTING LOGS FROM {}:".format(str(start_time)))
-    log_start = dateparser.parse("{} seconds ago".format(row[0]))
+    #log_start = dateparser.parse("{} seconds ago".format(first_entry))
+
+    log_start = datetime.datetime.strptime(str(first_entry), "%Y-%m-%d %H:%M:%S.%f")
     if start.lower() != "today":
         if log_start > start_time:
-            print("\033[34mWarning: logs are available only since: {}\033[0m".format(log_start))
+            print("\033[34mWarning: the first log entry available is from {}\033[0m".format(first_entry))
 
     if format != 'flat':
         run_and_show(stmt, format, session)
