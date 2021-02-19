@@ -1,5 +1,8 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
 from mysqlsh_plugins_common import run_and_show
+from pathlib import Path
+import pickle
+import os
 
 @plugin
 class profiling:
@@ -43,6 +46,11 @@ def start( session=None):
 
     if setup_actors != []:
         print("It seems that profiling has beem already enabled, maybe you didn't stop profiling !")
+        return
+    home = str(Path.home())
+    if os.path.exists("{}/.mysqlsh/pfs.pkl".format(home)):
+        print("It seems that profiling has been already enabled and you closed the session without stopping profiling !")
+        print("Performance Schema values were not restored, please use profiling.stop() to restore them.")
         return
 
     # Get the current thread
@@ -158,6 +166,15 @@ disable instrumentation for all other threads, do you want to continue? (y/N) ""
     result = session.run_sql(stmt)
 
     print("Profiling configured for the current thread ({})... please use profiling.stop() to stop it".format(curr_thread))
+    home = str(Path.home())
+    file = open('{}/.mysqlsh/pfs.pkl'.format(home),'wb')
+    pickle.dump(threads, file)
+    pickle.dump(setup_actors, file)
+    pickle.dump(setup_instruments_statement, file)
+    pickle.dump(setup_instruments_stage, file)
+    pickle.dump(setup_consumers_statements, file)
+    pickle.dump(setup_consumers_stages, file)
+    file.close()
     return
 
 @plugin_function("profiling.stop")
@@ -182,11 +199,25 @@ def stop( session=None):
             print("No session specified. Either pass a session object to this "
                   "function or connect the shell to a database")
             return
-
+    home = str(Path.home())
+    global setup_actors
     if setup_actors == []:
-        print("Profiling was not enabled !")
-        return
-
+        print("Profiling was not enabled in this session!")
+        if os.path.exists("{}/.mysqlsh/pfs.pkl".format(home)):
+            print("Previous Performance Schema values were saved, this means the session where profiling was started never stopped!")
+            print("Using those values to restore Perfromance Schmea instrumentation as previously.")
+            file = open('{}/.mysqlsh/pfs.pkl'.format(home),'rb')
+            global threads, setup_instruments_statement, setup_instruments_stage
+            global setup_consumers_statements, setup_consumers_stages
+            threads=pickle.load(file)
+            setup_actors=pickle.load(file)
+            setup_instruments_statement=pickle.load(file)
+            setup_instruments_stage=pickle.load(file)
+            setup_consumers_statements=pickle.load(file)
+            setup_consumers_stages=pickle.load(file)
+            file.close()
+        else:
+            return
 
     stmt = """TRUNCATE TABLE performance_schema.setup_actors"""
     session.run_sql(stmt)
@@ -234,6 +265,9 @@ def stop( session=None):
         session.run_sql(stmt)
     setup_consumers_stages.clear()
     print("Profiling is now stopped and instrumentation settings restored.")
+    home = str(Path.home())
+    if os.path.exists("{}/.mysqlsh/pfs.pkl".format(home)):
+       os.remove("{}/.mysqlsh/pfs.pkl".format(home))
 
 @plugin_function("profiling.get")
 def get( session=None):
