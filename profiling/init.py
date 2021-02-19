@@ -9,7 +9,7 @@ class profiling:
      A collection of methods to Profile MySQL Satements
     """
 
-
+threads = []
 setup_actors = []
 setup_instruments_statement = []
 setup_instruments_stage = []
@@ -41,6 +41,24 @@ def start( session=None):
                   "function or connect the shell to a database")
             return
 
+    if setup_actors != []:
+        print("It seems that profiling has beem already enabled, maybe you didn't stop profiling !")
+        return
+
+    # Get the current thread
+    stmt = """SELECT thread_id FROM performance_schema.session_variables
+                JOIN performance_schema.threads
+                  ON processlist_id = variable_value WHERE variable_name='pseudo_thread_id'"""
+    result = session.run_sql(stmt)
+    row = result.fetch_one()
+    curr_thread = row[0]
+
+    answer = shell.prompt("""To enable profiling for the current thread({}) we need to
+disable instrumentation for all other threads, do you want to continue? (y/N) """.format(curr_thread), {'defaultValue':'n'})
+    if answer.lower() == 'n':
+        print("Aborting...")
+        return
+
     # Check if there are other setup_actors than the default
     #
     # default is:
@@ -59,27 +77,26 @@ def start( session=None):
         for row in rows:
             setup_actors.append({'host': row[0], 'user': row[1], 'role': row[2], 'enabled': row[3], 'history': row[4]})
 
-    # Get the current user
-    stmt = """SELECT CURRENT_USER()"""
+    stmt = """SELECT THREAD_ID , NAME, INSTRUMENTED, HISTORY FROM  performance_schema.threads ;"""
     result = session.run_sql(stmt)
-    row = result.fetch_one()
-    (curr_user, curr_host) = row[0].split('@')
+    rows = result.fetch_all()
+    #  We need to save the default
+    if threads == []:
+        for row in rows:
+            threads.append({'thread_id': row[0], 'name': row[1], 'instrumented': row[2], 'history': row[3]})
 
-    # Disable instrumentation for all
-    print("Disabling Actors and History for all users.")
+    # Disable instrumentation for all users
+    print("Disabling Instrumentation and History for all existing threads and new ones.")
     stmt = """UPDATE performance_schema.setup_actors
               SET ENABLED = 'NO', HISTORY = 'NO'
               WHERE HOST = '%' AND USER = '%'"""
     result = session.run_sql(stmt)
-    print("Enabling Actors and History for {}@{}.".format(curr_user, curr_host))
-    stmt = """INSERT INTO performance_schema.setup_actors
-              (HOST,USER,ROLE,ENABLED,HISTORY)
-              VALUES('{}','{}','%','YES','YES')""".format(curr_host, curr_user)
-    try:
-        result = session.run_sql(stmt)
-    except:
-        print("{}@{} is already in performance_schema.setup_actors, maybe you didn't stop profiling !".format(curr_user, curr_host))
-        return
+
+    # Disable instrumentation for all existing threads
+    stmt = """UPDATE performance_schema.threads
+              SET INSTRUMENTED = 'NO', HISTORY = 'NO'"""
+    result = session.run_sql(stmt)
+
 
     # save the default for some tables
     stmt = """SELECT NAME, ENABLED, TIMED FROM performance_schema.setup_instruments
@@ -135,7 +152,12 @@ def start( session=None):
               WHERE NAME LIKE '%events_stages_%'"""
     result = session.run_sql(stmt)
 
-    print("Profiling configured for {}@{}... please use profiling.stop() to stop it".format(curr_user, curr_host))
+    print("Enabling Total Instrumentation fot thread {}".format(curr_thread))
+    stmt = """UPDATE performance_schema.threads
+              SET INSTRUMENTED = 'YES', HISTORY = 'YES' WHERE thread_id={}""".format(curr_thread)
+    result = session.run_sql(stmt)
+
+    print("Profiling configured for the current thread ({})... please use profiling.stop() to stop it".format(curr_thread))
     return
 
 @plugin_function("profiling.stop")
@@ -176,6 +198,13 @@ def stop( session=None):
                                                                  actor['enabled'], actor['history'])
         session.run_sql(stmt)
     setup_actors.clear()
+
+    for thread in threads:
+        stmt = """UPDATE performance_schema.threads
+                  SET INSTRUMENTED = '{}', HISTORY = '{}'
+                  WHERE THREAD_ID ={};""".format(thread['instrumented'], thread['history'], thread['thread_id'])
+        session.run_sql(stmt)
+    threads.clear()
 
     for instrument in setup_instruments_statement:
         stmt = """UPDATE performance_schema.setup_instruments
