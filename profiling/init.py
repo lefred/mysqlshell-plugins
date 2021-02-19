@@ -233,7 +233,7 @@ def stop( session=None):
                   WHERE NAME LIKE '{}';""".format(consumer['enabled'], consumer['name'])
         session.run_sql(stmt)
     setup_consumers_stages.clear()
-    print("Profiling is now stopped.")
+    print("Profiling is now stopped and instrumentation settings restored.")
 
 @plugin_function("profiling.get")
 def get( session=None):
