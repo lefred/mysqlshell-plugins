@@ -1,6 +1,7 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
 from mysqlsh_plugins_common import run_and_show
 from pathlib import Path
+from datetime import datetime
 import pickle
 import os
 
@@ -19,17 +20,21 @@ setup_instruments_stage = []
 setup_consumers_statements = []
 setup_consumers_stages = []
 
+monitored_thread=None
+monitored_time=None
+
 @plugin_function("profiling.start")
-def start( session=None):
+def start(thread=None, session=None):
     """
     Start the profiling collection.
 
     This function configure Perfomance Schema Instrumentation
-    to enable profiling for the current connected user.
-    Using a dedicated user is recommended as all threads/connections for
-    the current user will be monitored.
+    to enable profiling for foreground threads.
+    By default the current thread will be instrumented, but it's possible
+    to pick another one too.
 
     Args:
+        thread (integer): The optional thread (processlist_id) you want to profile. Default is the current one.
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
 
@@ -53,16 +58,29 @@ def start( session=None):
         print("Performance Schema values were not restored, please use profiling.stop() to restore them.")
         return
 
-    # Get the current thread
-    stmt = """SELECT thread_id FROM performance_schema.session_variables
+
+    global monitored_thread
+    global monitored_time
+
+    if thread is None:
+        # Get the current thread
+        stmt = """SELECT thread_id FROM performance_schema.session_variables
                 JOIN performance_schema.threads
                   ON processlist_id = variable_value WHERE variable_name='pseudo_thread_id'"""
+        curr_string="current "
+        monitored_thread = None
+    else:
+        stmt = """SELECT thread_id, processlist_user, processlist_host
+                    FROM performance_schema.threads WHERE processlist_id={}""".format(thread)
+        monitored_thread = thread
+        curr_string=""
     result = session.run_sql(stmt)
     row = result.fetch_one()
     curr_thread = row[0]
 
-    answer = shell.prompt("""To enable profiling for the current thread({}) we need to
-disable instrumentation for all other threads, do you want to continue? (y/N) """.format(curr_thread), {'defaultValue':'n'})
+    answer = shell.prompt("""To enable profiling for the {}thread({}) [{}@{}] we need to
+disable instrumentation for all other threads, do you want to continue? (y/N) """.format(curr_string,
+             curr_thread, row[1], row[2]), {'defaultValue':'n'})
     if answer.lower() == 'n':
         print("Aborting...")
         return
@@ -164,6 +182,7 @@ disable instrumentation for all other threads, do you want to continue? (y/N) ""
     stmt = """UPDATE performance_schema.threads
               SET INSTRUMENTED = 'YES', HISTORY = 'YES' WHERE thread_id={}""".format(curr_thread)
     result = session.run_sql(stmt)
+    monitored_time = datetime.now()
 
     print("Profiling configured for the current thread ({})... please use profiling.stop() to stop it".format(curr_thread))
     home = str(Path.home())
@@ -192,6 +211,8 @@ def stop( session=None):
     """
     import mysqlsh
     shell = mysqlsh.globals.shell
+
+    global monitored_time
 
     if session is None:
         session = shell.get_session()
@@ -264,13 +285,14 @@ def stop( session=None):
                   WHERE NAME LIKE '{}';""".format(consumer['enabled'], consumer['name'])
         session.run_sql(stmt)
     setup_consumers_stages.clear()
+    monitored_time=None
     print("Profiling is now stopped and instrumentation settings restored.")
     home = str(Path.home())
     if os.path.exists("{}/.mysqlsh/pfs.pkl".format(home)):
        os.remove("{}/.mysqlsh/pfs.pkl".format(home))
 
 @plugin_function("profiling.get")
-def get( session=None):
+def get(limit=5,session=None):
     """
     Get the profile of a statement
 
@@ -278,6 +300,7 @@ def get( session=None):
     to disable profiling for the current connected user.
 
     Args:
+        limit (integer): The amount of events showed to retrieve info. Default 5.
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
     """
@@ -294,28 +317,58 @@ def get( session=None):
     if setup_actors == []:
         print("Profiling was not started, run profiling.start() before getting any result !")
         return
-    # Get the current user
-    stmt = """SELECT CURRENT_USER()"""
-    result = session.run_sql(stmt)
-    row = result.fetch_one()
-    (curr_user, curr_host) = row[0].split('@')
+    if monitored_thread is None:
+        where_str="@@pseudo_thread_id"
+    else:
+        where_str=monitored_thread
 
     # Get the list of Statements
-    stmt = """(SELECT event_id, SQL_TEXT FROM performance_schema.events_statements_history_long t1
-                JOIN performance_schema.threads t2 ON t2.thread_id=t1.thread_id
-               WHERE PROCESSLIST_USER='{}' AND PROCESSLIST_HOST='{}'
-               ORDER BY event_id DESC LIMIT 3) ORDER BY event_id""".format(curr_user, curr_host)
+    stmt = """SELECT event_id, SQL_TEXT, TRUNCATE(TIMER_WAIT/1000000000000,6) as Duration,
+                     t1.thread_id,
+                     DATE_SUB(NOW(), INTERVAL (SELECT VARIABLE_VALUE
+                        FROM performance_schema.global_status
+                       WHERE VARIABLE_NAME='UPTIME') - TIMER_END*10e-13 second) AS `end_time`
+                FROM performance_schema.events_statements_history_long t1
+                JOIN performance_schema.threads t2
+                    ON t2.thread_id=t1.thread_id
+                WHERE t2.processlist_id={}
+                ORDER BY event_id DESC LIMIT {}""".format(where_str, limit)
     result = session.run_sql(stmt)
     rows = result.fetch_all()
+
+    if len(rows) > 1:
+        print("Last 5 events from the proccess list id: {}".format(where_str))
+        print("-----------------------------------------"+"-"*len(str(where_str)))
+        print("\033[33m---Events before profiling was started are in orange---\033[0m")
+
+    tab_element={}
     for row in rows:
-        print("Profiling of:")
-        print("-------------")
-        print(row[1])
-        stmt = """SELECT event_name AS Stage, TRUNCATE(TIMER_WAIT/1000000000000,6) AS Duration
-                  FROM performance_schema.events_stages_history_long
-                  WHERE NESTING_EVENT_ID={}""".format(row[0])
-        run_and_show(stmt)
-        print("Don't forget to stop the profiling when done.")
+        if (datetime.strptime(str(row[4]), "%Y-%m-%d %H:%M:%S.%f") > monitored_time):
+            print("\033[92m{}\033[0m : {}".format(row[0], row[1]))
+        else:
+            print("\033[33m{}\033[0m : {}".format(row[0], row[1]))
+
+        tab_element[row[0]]={"sql": row[1], "duration": row[2], "thread": row[3]}
+
+    answer = shell.prompt("""Which event do you want to profile ? """)
+    if answer.isdigit():
+        if int(answer) not in tab_element.keys():
+            print("ERROR: element id {} not present in that list !".format(answer))
+            return
+    else:
+        print("ERROR: [{}] is not the id of an event in the list !".format(answer))
         return
 
 
+
+    print("\nProfiling of:")
+    print("-------------")
+    print(tab_element[int(answer)]['sql'])
+    print("\033[33mduration: {}\033[0m".format(tab_element[int(answer)]['duration']))
+    stmt = """SELECT event_name AS Stage, TRUNCATE(TIMER_WAIT/1000000000000,6) AS Duration
+              FROM performance_schema.events_stages_history_long
+              WHERE NESTING_EVENT_ID={} and THREAD_ID={}""".format(answer, tab_element[int(answer)]['thread'])
+
+    run_and_show(stmt)
+    print("Don't forget to stop the profiling when done.")
+    return
