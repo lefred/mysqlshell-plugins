@@ -126,9 +126,9 @@ def show_locks(limit=10, session=None):
         if len(rows) > 0:
             for row in rows:
                 if row[5] is None:
-                    print("{} {} ({}) LOCK on {}.{}".format(row[4], row[2], row[3], row[0], row[1]))
+                    print("{} {} ({}) LOCK ON {}.{}".format(row[4], row[2], row[3], row[0], row[1]))
                 else:
-                    to_print = "{} {} ({}) LOCK on {}.{} ({}) ".format(row[4], row[2], row[3], row[0], row[1], row[5])
+                    to_print = "{} {} ({}) LOCK ON {}.{} ({}) ".format(row[4], row[2], row[3], row[0], row[1], row[5])
                     str_len=len(to_print)
                     print(to_print, end='')
                     if row[5] != prev_index:
@@ -209,6 +209,29 @@ def show_locks(limit=10, session=None):
                             next_line=True
         else:
             print("None")
+        # STAEMENTS BLOCKING US
+        stmt = """SELECT REPLACE(locked_table,'`','') `TABLE`, locked_type, PROCESSLIST_INFO, waiting_lock_mode,
+                         waiting_trx_rows_locked, waiting_trx_started, wait_age_secs, blocking_pid
+                  FROM performance_schema.threads AS t
+                  JOIN sys.innodb_lock_waits AS ilw
+                    ON ilw.waiting_pid = t.PROCESSLIST_ID where waiting_pid={}""".format(answer)
+        result = session.run_sql(stmt)
+        rows = result.fetch_all()
+        for row in rows:
+            print("BLOCKED FOR {} SECONDS BY (mysql_thread_id: {})".format(row[6], row[7]))
+            print("    \033[31m{}\033[0m".format(row[2]))
+        # STATEMENTS WE ARE BLOCKING
+        stmt = """SELECT REPLACE(locked_table,'`','') `TABLE`, locked_type, waiting_query, waiting_lock_mode,
+                         waiting_trx_rows_locked, waiting_trx_started, wait_age_secs, processlist_id
+                  FROM performance_schema.threads AS t
+                  JOIN sys.innodb_lock_waits AS ilw
+                    ON ilw.waiting_pid = t.PROCESSLIST_ID where blocking_pid={}""".format(answer)
+        result = session.run_sql(stmt)
+        rows = result.fetch_all()
+        for row in rows:
+            print("BLOCKING {} ({}) LOCK ON {} FOR {} SECONDS (mysql_thread_id: {})".format(row[1], row[3], row[0], row[6], row[7]))
+            print("    \033[33m{}\033[0m".format(row[2]))
+
 
     else:
         print("%s is not part of the mysql_thread_id returned or is not valid!" % answer)
