@@ -9,6 +9,7 @@ class check:
     MySQL Database Server.
     """
 
+from check import workld
 from check import trx
 from check import queries
 from check import locks
