@@ -47,7 +47,10 @@ def show_defaults(table, schema=None, session=None):
             col_expr = 'NULL'
         else:
             col_expr = col_expr.replace('\\', '')
-        query = session.run_sql("select {0}".format(col_expr))
+        try:
+            query = session.run_sql("select {0}".format(col_expr))
+        except:
+            query = session.run_sql("select '{0}'".format(col_expr))
         if col_expr == 'NULL':
             ex_str = col_expr
         else:
