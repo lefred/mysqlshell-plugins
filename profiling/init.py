@@ -64,7 +64,7 @@ def start(thread=None, session=None):
 
     if thread is None:
         # Get the current thread
-        stmt = """SELECT thread_id FROM performance_schema.session_variables
+        stmt = """SELECT thread_id, processlist_user, processlist_host FROM performance_schema.session_variables
                 JOIN performance_schema.threads
                   ON processlist_id = variable_value WHERE variable_name='pseudo_thread_id'"""
         curr_string="current "
