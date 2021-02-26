@@ -70,6 +70,9 @@ def run_and_show(stmt, format='table',session=None):
                   "function or connect the shell to a database")
             return
 
-    result = session.run_sql(stmt)
-    shell.dump_rows(result, format)
+    try:
+        result = session.run_sql(stmt)
+        shell.dump_rows(result, format)
+    except:
+        print("This query cannot be executed.")
     return
