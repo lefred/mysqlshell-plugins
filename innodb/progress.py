@@ -3,6 +3,7 @@
 # Definition of methods related to InnoDB alter table progress
 #
 from mysqlsh.plugin_manager import plugin, plugin_function
+from mysqlsh_plugins_common import get_version
 
 def _is_consumer_enabled(session, shell):
 
@@ -84,11 +85,34 @@ def get_alter_progress(format='table', session=None):
         print("Aborting, the consumer is not enabled")
         return
 
-    stmt="""SELECT stmt.THREAD_ID, stmt.SQL_TEXT, stage.EVENT_NAME AS State,
+    version = get_version(session)
+    if version == "8":
+        stmt="""SELECT stmt.THREAD_ID, stmt.SQL_TEXT, stage.EVENT_NAME AS State,
+                   stage.WORK_COMPLETED, stage.WORK_ESTIMATED,
+                   lpad(CONCAT(ROUND(100*stage.WORK_COMPLETED/stage.WORK_ESTIMATED, 2),"%"),10," ")
+                   AS COMPLETED_AT,
+                   lpad(format_pico_time(stmt.TIMER_WAIT), 10, " ") AS STARTED_AGO,
+                   lpad(format_pico_time(stmt.TIMER_WAIT/ROUND(100*stage.WORK_COMPLETED/stage.WORK_ESTIMATED,2)*100), 10, " ")
+                     AS ESTIMATED_FULL_TIME,
+                   lpad(format_pico_time((stmt.TIMER_WAIT/ROUND(100*stage.WORK_COMPLETED/stage.WORK_ESTIMATED,2)*100)-stmt.TIMER_WAIT), 10, " ")
+                     AS ESTIMATED_REMAINING_TIME,
+                   current_allocated MEMORY
+            FROM performance_schema.events_statements_current stmt
+            INNER JOIN sys.memory_by_thread_by_current_bytes mt
+                    ON mt.thread_id = stmt.thread_id
+            INNER JOIN performance_schema.events_stages_current stage
+                    ON stage.THREAD_ID = stmt.THREAD_ID"""
+    else:
+        stmt="""SELECT stmt.THREAD_ID, stmt.SQL_TEXT, stage.EVENT_NAME AS State,
                    stage.WORK_COMPLETED, stage.WORK_ESTIMATED,
                    lpad(CONCAT(ROUND(100*stage.WORK_COMPLETED/stage.WORK_ESTIMATED, 2),"%"),12," ")
-                   AS CompletedPct, lpad(format_pico_time(stmt.TIMER_WAIT), 10, " ") AS StartedAgo,
-                   current_allocated Memory
+                   AS COMPLETED_AT,
+                   lpad(sys.format_time(stmt.TIMER_WAIT), 10, " ") AS STARTED_AGO,
+                   lpad(sys.format_time(stmt.TIMER_WAIT/ROUND(100*stage.WORK_COMPLETED/stage.WORK_ESTIMATED,2)*100), 10, " ")
+                     AS ESTIMATED_FULL_TIME,
+                   lpad(sys.format_time((stmt.TIMER_WAIT/ROUND(100*stage.WORK_COMPLETED/stage.WORK_ESTIMATED,2)*100)-stmt.TIMER_WAIT), 10, " ")
+                     AS ESTIMATED_REMAINING_TIME,
+                   current_allocated MEMORY
             FROM performance_schema.events_statements_current stmt
             INNER JOIN sys.memory_by_thread_by_current_bytes mt
                     ON mt.thread_id = stmt.thread_id

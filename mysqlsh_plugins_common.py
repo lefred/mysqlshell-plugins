@@ -59,6 +59,12 @@ Do you want to enabled them now ? (y/N) """
 
     return ok
 
+def get_version(session):
+    result = session.run_sql("SELECT @@version")
+    col = result.fetch_one()
+    return col[0].split('.')[0]
+
+
 def run_and_show(stmt, format='table',session=None):
     import mysqlsh
     shell = mysqlsh.globals.shell
