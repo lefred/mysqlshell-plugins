@@ -85,7 +85,7 @@ def show_cluster_error_log(limit=10, type="all", subsystem="all", session=None):
         rows = result.fetch_all()
         for row in rows:
             color = color_tab[i]
-            out.append("{}{} {} [{}] [{}] [{}] {}\033[0m".format(row[0], color, row[1], row[2], row[3], row[4], row[5]))
+            out.append("{}{} {:>4} {:9s} [{}] {:8s} {}\033[0m".format(row[0], color, row[1], "["+row[2]+"]", row[3], "["+row[4]+"]", row[5]))
         i+=1
     out.sort()
     for entry in out:
@@ -175,7 +175,8 @@ def tail_cluster_error_log(limit=10, type="all", subsystem="all", refresh=1, ses
             shell, session, second_mem)
         failures[second_mem] = 0
 
-    color_tab=['\033[34m', '\033[36m', '\033[94m', '\033[36m', '\033[92m', '\033[35m', '\033[91m', '\033[33m', '\033[93m']
+    color_tab=['\033[34m', '\033[36m', '\033[94m', '\033[32m', '\033[92m', '\033[35m', '\033[91m', '\033[33m', '\033[93m']
+    color_tab2=['\033[44m', '\033[46m', '\033[7;79;94m', '\033[42m', '\033[7;79;92m', '\033[45m', '\033[7;79;91m', '\033[43m', '\033[7;79;93m']
 
     i = 0
     t = 0
@@ -214,7 +215,12 @@ def tail_cluster_error_log(limit=10, type="all", subsystem="all", refresh=1, ses
                         color = color_tab[i]
                         if row[2] == 'Error':
                             color += '\033[41m'
-                        out.append("{}{} {} [{}] [{}] [{}] {}\033[0m".format(row[0], color, row[1], row[2], row[3], row[4], row[5]))
+                        msg = row[5]
+                        j = 0
+                        for second_members in secondaries:
+                            msg = msg.replace(second_members, "\033[0m{}{}\033[0m{}".format(color_tab2[j], second_members, color))
+                            j+=1
+                        out.append("{}{} {:>4} {:9s} [{}] {:8s} {}\033[0m".format(row[0], color, row[1], "["+row[2]+"]", row[3], "["+row[4]+"]", msg))
                         if not last_date:
                             last_date = row[0]
                         if str(row[0]) > str(last_date):

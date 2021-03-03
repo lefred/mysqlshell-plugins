@@ -243,7 +243,7 @@ def tail_error_log(limit=10, type="all", subsystem="all", refresh=1, session=Non
                 color = fg.warning
             if row[2] == 'Note':
                 color = fg.note
-            print("{}{} {} [{}] [{}] [{}] {}\033[0m".format(color,row[0], row[1], row[2], row[3], row[4], row[5]))
+            print("{}{} {:>4} {:9s} [{}] {:8s} {}\033[0m".format(color,row[0], row[1], "["+row[2]+"]", row[3], "["+row[4]+"]", row[5]))
             last_date = row[0]
         time.sleep(refresh)
 
