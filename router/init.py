@@ -54,7 +54,7 @@ def createRestUser(session=None):
         exit
     if platform.system() == "Darwin":
         try:
-            import passlib
+            from passlib.hash import sha256_crypt
             use_passlib = True
         except:
             print("Error importing module passlib, try:")
@@ -91,7 +91,7 @@ def createRestUser(session=None):
             print("Passwords do not match, try again !")
 
     if use_passlib:
-        crypted_pwd = passlib.hash.sha256_crypt.hash(userpoassword)
+        crypted_pwd = sha256_crypt.encrypt(userpassword)
     else:
         crypted_pwd = crypt.crypt(userpassword, crypt.mksalt(method=crypt.METHOD_SHA256))
     stmt = """REPLACE INTO mysql_innodb_cluster_metadata.router_rest_accounts VALUES
