@@ -100,12 +100,12 @@ def show_cluster_error_log(limit=10, type="all", subsystem="all", session=None):
     return
 
 @plugin_function("innodb_cluster.tailClusterErrorLog")
-def tail_cluster_error_log(wrap=False, limit=10, type="all", subsystem="all", refresh=1, session=None):
+def tail_cluster_error_log(wrap=True, limit=10, type="all", subsystem="all", refresh=1, session=None):
     """
     Display the Errog Log lines for all members of a cluster.
 
     Args:
-        wrap (bool): Wrap lines and display them with indent.
+        wrap (bool): Wrap lines and display them with indent. Default is True.
         limit (integer): The amount of lines to display when starting the tail. 0 means no limit. Default: 10.
         type (string): The type of error entries. Valid values are 'all', 'system', 'error', 'warning' and 'note'.
                        Default is 'all'.
