@@ -91,7 +91,7 @@ def createRestUser(session=None):
             print("Passwords do not match, try again !")
 
     if use_passlib:
-        crypted_pwd = sha256_crypt.encrypt(userpassword)
+        crypted_pwd = sha256_crypt.hash(userpassword)
     else:
         crypted_pwd = crypt.crypt(userpassword, crypt.mksalt(method=crypt.METHOD_SHA256))
     stmt = """REPLACE INTO mysql_innodb_cluster_metadata.router_rest_accounts VALUES
