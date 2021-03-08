@@ -63,8 +63,10 @@ class MyRouter:
             header_printed = 0
             print_empty =[]
             result_json = json.loads(result.content)
+            got_item=False
             for item in result_json['items']:
                     route_name = item['name']
+                    got_item=True
                     if route_to_find in route_name:
                         result_item = self.__router_call("/routes/%s/connections" % route_name)
                         result_item_json = json.loads(result_item.content)
@@ -84,6 +86,9 @@ class MyRouter:
                             fmt = "| {0:"+str(l1)+"s} | {1:"+str(l2)+"s} | {2:"+str(l3)+"s} | {3:>"+str(l4)+"s} | {4:>"+str(l5)+"s} | {5:"+str(l6)+"s} |"
                             header = fmt.format("Route", "Source", "Destination", "From Server", "To Server", "Connection Started")
                             bar = "+" + "-" * (l1+2) + "+" + "-" * (l2+2) + "+" + "-" * (l3+2) + "+" + "-" * (l4+2) + "+" + "-" * (l5+2) + "+" + "-" * (l6+2) + "+"
+            if not got_item:
+                print("No connections to show.")
+                return
             print (bar)
             print (header)
             print (bar)

@@ -44,6 +44,22 @@ def createRestUser(session=None):
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
     """
+
+    use_passlib = False
+    try:
+        import platform
+    except:
+        print("Error importing module platform, try:")
+        print("mysqlsh --pym pip install --user platform") 
+        exit
+    if platform.system() == "Darwin":
+        try:
+            import passlib
+            use_passlib = True
+        except:
+            print("Error importing module passlib, try:")
+            print("mysqlsh --pym pip install --user passlib") 
+            exit
     import mysqlsh
     shell = mysqlsh.globals.shell
 
@@ -74,12 +90,15 @@ def createRestUser(session=None):
         else:
             print("Passwords do not match, try again !")
 
-    crypted_pwd = crypt.crypt(userpassword, crypt.mksalt(method=crypt.METHOD_SHA256))
+    if use_passlib:
+        crypted_pwd = passlib.hash.sha256_crypt.hash(userpoassword)
+    else:
+        crypted_pwd = crypt.crypt(userpassword, crypt.mksalt(method=crypt.METHOD_SHA256))
     stmt = """REPLACE INTO mysql_innodb_cluster_metadata.router_rest_accounts VALUES
-              ((SELECT cluster_id FROM mysql_innodb_cluster_metadata.v2_clusters LIMIT 1), "{}", "modular_crypt_format",
-                 "{}", NULL, NULL, NULL);""".format(username, crypted_pwd)
+              ((SELECT cluster_id FROM mysql_innodb_cluster_metadata.v2_clusters LIMIT 1), ?, "modular_crypt_format",
+                 ?, NULL, NULL, NULL);"""
 
-    result = session.run_sql(stmt)
+    result = session.run_sql(stmt,[username, crypted_pwd])
     if result:
         print("You can now use '{}' to authenticate to MySQL Router's REST API.".format(username))
         print("Use myrouter=router.create(\"{}@<router IP>:8443\") to create an object to monitor.".format(username))
