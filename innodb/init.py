@@ -16,3 +16,4 @@ from innodb import fragmented
 from innodb import progress
 from innodb import bufferpool
 from innodb import autoinc
+from innodb import checkpoint
