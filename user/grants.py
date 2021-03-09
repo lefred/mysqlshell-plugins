@@ -1,13 +1,14 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
 
 @plugin_function("user.getUsersGrants")
-def get_users_grants(user=None, session=None):
+def get_users_grants(find=None, exclude=None, session=None):
     """
     Prints CREATE USERS, ROLES and GRANT STATEMENTS
 
     Args:
-        user (string): The user to find, wildcards can also be used. If none,
-            all users and roles are returned. Degault: None
+        find (string): Users to find, wildcards can also be used. If none,
+            all users and roles are returned. Default: None.
+        exclude (string): Users to exclude, wildcards can also be used. Default: None.
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
 
@@ -23,8 +24,12 @@ def get_users_grants(user=None, session=None):
                   "function or connect the shell to a database")
             return
     search_string = ""
-    if user:
-        search_string = 'AND user LIKE "{}"'.format(user)
+    exclude_string = ""
+    if find:
+        search_string = 'AND user LIKE "{}"'.format(find)
+    if exclude:
+        exclude_string = 'AND user NOT LIKE "{}"'.format(exclude)
+
     # Get the list of roles
     stmt = """SELECT DISTINCT user.user AS name, user.host, IF(from_user IS NULL,0, 1) AS active
               FROM mysql.user
@@ -32,8 +37,8 @@ def get_users_grants(user=None, session=None):
               WHERE `account_locked`='Y'
                 AND `password_expired`='Y'
                 AND `authentication_string`=''
-                {}
-         """.format(search_string)
+                {} {}
+         """.format(search_string, exclude_string)
     users =  session.run_sql(stmt).fetch_all()
 
     for user in users:
@@ -50,9 +55,9 @@ def get_users_grants(user=None, session=None):
 
     # Get the list of users
     stmt = """SELECT DISTINCT User, Host FROM mysql.user
-              WHERE NOT( `account_locked`="Y" AND `password_expired`="Y" AND `authentication_string`="" ) {}
+              WHERE NOT( `account_locked`="Y" AND `password_expired`="Y" AND `authentication_string`="" ) {} {}
               ORDER BY User, Host;
-         """.format(search_string)
+         """.format(search_string, exclude_string)
     users =  session.run_sql(stmt).fetch_all()
 
     for user in users:
