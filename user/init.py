@@ -51,3 +51,5 @@ def create_user(verbose=False, session=None):
     shell.dump_rows(result)
 
     return
+
+from user import grants
