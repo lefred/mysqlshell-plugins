@@ -53,3 +53,4 @@ def create_user(verbose=False, session=None):
     return
 
 from user import grants
+from user import copy
