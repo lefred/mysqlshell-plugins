@@ -55,13 +55,14 @@ def _connect_to_destination(shell, uri):
 
 
 @plugin_function("user.copy")
-def copy_users_grants(dryrun=False, ocimds=False, session=None):
+def copy_users_grants(dryrun=False, ocimds=False, force=False, session=None):
     """
     Copy a user to another server
 
     Args:
         dryrun (bool): Don't run the statements but only shows them.
-        ocimds (bool): Use OCI MDS compatibility mode.
+        ocimds (bool): Use OCI MDS compatibility mode. Default is False.
+        force (bool): Reply "yes" to all questions when the plan is to copy multiple users. Default is False.
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
 
@@ -111,7 +112,9 @@ def copy_users_grants(dryrun=False, ocimds=False, session=None):
     print("Info: locked users and users having expired password are not listed.")
 
     # Get the list of users
-    stmt = """SELECT DISTINCT User, Host FROM mysql.user
+    stmt = """SELECT DISTINCT User, Host,
+                     IF(authentication_string = "","NO", "YES") HAS_PWD
+              FROM mysql.user
               WHERE NOT( `account_locked`="Y" AND `password_expired`="Y" AND `authentication_string`="" ) {}
               ORDER BY User, Host;
          """.format(search_string)
@@ -121,7 +124,13 @@ def copy_users_grants(dryrun=False, ocimds=False, session=None):
         final_s = "s"
     print("{} user{} found!".format(len(users), final_s))
     for user in users:
-        answer = shell.prompt("Do you want to copy [`{}`@`{}`] ? (y/N) ".format(user[0], user[1]), {'defaultValue': 'n'})
+        if ocimds and user[2] == "NO":
+            print("[`{}`@`{}`] is not compatible with OCI MDS as it has not password, ignoring it...".format(user[0], user[1]))
+            continue
+        if not force:
+            answer = shell.prompt("Do you want to copy [`{}`@`{}`] ? (y/N) ".format(user[0], user[1]), {'defaultValue': 'n'})
+        else:
+            answer = "y"
         if answer.lower() == 'y':
             # TODO: check if the user belongs to a role
             stmt = """SELECT from_user, from_host FROM mysql.role_edges WHERE to_user = ? and to_host = ?"""
@@ -135,7 +144,8 @@ def copy_users_grants(dryrun=False, ocimds=False, session=None):
                 print("The following role{} assigned to the user:".format(final_s))
                 for role in roles:
                     print("- `{}`@`{}`".format(role[0], role[1]))
-                answer = shell.prompt(question, {'defaultValue': 'n'})
+                if not force:
+                    answer = shell.prompt(question, {'defaultValue': 'n'})
                 if answer.lower() == 'y':
                     for role in roles:
                         stmt = """SHOW CREATE USER `{}`@`{}`""".format(role[0], role[1])
@@ -236,6 +246,6 @@ def copy_users_grants(dryrun=False, ocimds=False, session=None):
                             print("Aborting: {}".format(err))
                             return
             if not dryrun and len(grants)>0:
-                print("\nUser copied successfully!")
+                print("\nUser(s) copied successfully!")
 
     return

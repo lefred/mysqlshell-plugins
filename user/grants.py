@@ -40,13 +40,13 @@ def get_users_grants(find=None, exclude=None, session=None):
                 {} {}
          """.format(search_string, exclude_string)
     users =  session.run_sql(stmt).fetch_all()
-
+    print("-- INFO: due to eventual binary values in the authentication string, it's better to output the result to a file.")
     for user in users:
         print("-- Role `{}`@`{}`".format(user[0], user[1]))
         stmt = """SHOW CREATE USER `{}`@`{}`""".format(user[0], user[1])
         create_user = session.run_sql(stmt).fetch_one()[0] + ";"
-        create_user=create_user.replace("CREATE USER '{}'@'".format(user[0]),"ALTER USER '{}'@'".format(user[0]))
-        print("CREATE ROLE IF NOT EXISTS `{}`@`{}`;".format(user[0], user[1]))
+        create_user=create_user.replace("CREATE USER '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
+        #print("CREATE ROLE IF NOT EXISTS `{}`@`{}`;".format(user[0], user[1]))
         print(create_user)
         stmt = """SHOW GRANTS FOR `{}`@`{}`""".format(user[0], user[1])
         grants = session.run_sql(stmt).fetch_all()
@@ -64,8 +64,8 @@ def get_users_grants(find=None, exclude=None, session=None):
         print("-- User `{}`@`{}`".format(user[0], user[1]))
         stmt = """SHOW CREATE USER `{}`@`{}`""".format(user[0], user[1])
         create_user = session.run_sql(stmt).fetch_one()[0] + ";"
-        create_user=create_user.replace("CREATE USER '{}'@'".format(user[0]),"ALTER USER '{}'@'".format(user[0]))
-        print("CREATE USER IF NOT EXISTS `{}`@`{}`;".format(user[0], user[1]))
+        create_user=create_user.replace("CREATE USER '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
+        #print("CREATE USER IF NOT EXISTS `{}`@`{}`;".format(user[0], user[1]))
         print(create_user)
         stmt = """SHOW GRANTS FOR `{}`@`{}`""".format(user[0], user[1])
         grants = session.run_sql(stmt).fetch_all()
