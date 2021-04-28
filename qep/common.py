@@ -30,6 +30,7 @@ def _chek_dba_db(session, dbok):
   `qep` json DEFAULT NULL,
   `query_cost` float GENERATED ALWAYS AS (json_unquote(json_extract(`qep`,_utf8mb4'$."query_bloack"."cost_info"."query_cost"'))) VIRTUAL,
   `qep_tree` text,
+  `version` varchar(8),
   PRIMARY KEY (`id`),
   KEY `hash_idx` (`common_hash`)
 ) ENGINE=InnoDB"""
@@ -66,9 +67,9 @@ def _chek_dba_db(session, dbok):
 def _save_qep(stmt, qep, qep_tree, session, dbok):
     dbok = _chek_dba_db(session, dbok)
     # save the json qep
-    query = """INSERT INTO dba.qep(common_hash, qep, qep_tree)
+    query = """INSERT INTO dba.qep(common_hash, qep, qep_tree, version)
                VALUES (SHA2(TRIM(statement_digest_text(?)), 224),
-                ?, ?);"""
+                ?, ?, @@version);"""
     session.run_sql(query, [stmt, qep, qep_tree])
     return dbok
 
@@ -86,7 +87,7 @@ def _load_qep(stmt, qep, session, dbok):
     return dbok, got_one
 
 def _load_qep_all(stmt, session):
-    query = """SELECT id, inserted, query_cost FROM dba.qep WHERE common_hash=SHA2(TRIM(statement_digest_text(?)), 224)
+    query = """SELECT id, inserted, query_cost, version FROM dba.qep WHERE common_hash=SHA2(TRIM(statement_digest_text(?)), 224)
                ORDER BY inserted DESC"""
     result = session.run_sql(query, [stmt])
     rows = result.fetch_all()
@@ -96,6 +97,7 @@ def _load_qep_all(stmt, session):
         rec.append(row[0])
         rec.append(row[1])
         rec.append(row[2])
+        rec.append(row[3])
         ids.append(rec)
 
     return ids
@@ -109,7 +111,12 @@ def _get_qep_by_id(id, session):
 def get_full_detail(original_query, session, dbok):
     shell = mysqlsh.globals.shell
     stmt = """EXPLAIN FORMAT=json %s""" % original_query
-    result = session.run_sql(stmt)
+    try:
+        result = session.run_sql(stmt)
+    except mysqlsh.DBError as err:
+        print("Aborting: {}".format(err))
+        return
+
     row = result.fetch_one()
     qep=row[0]
     qep_json = json.loads(qep)
@@ -143,15 +150,15 @@ def get_full_detail(original_query, session, dbok):
             all_ids = _load_qep_all(original_query,session)
             i = 0
             if len(all_ids)>0:
-                fmt = "| {0:>3s} | {1:20s} | {2:>11s} |"
-                header = fmt.format("Num", "Timestamp", "Query Cost")
-                bar = "+" + "-" * 5 + "+" + "-" * 22 + "+" + "-" * 13 + "+"
+                fmt = "| {0:>3s} | {1:20s} | {2:>11s} | {3:>7s} |"
+                header = fmt.format("Num", "Timestamp", "Query Cost", "Version")
+                bar = "+" + "-" * 5 + "+" + "-" * 22 + "+" + "-" * 13 + "+" + "-" * 9 + "+"
                 print (bar)
                 print (header)
                 print (bar)
                 for rec in all_ids:
                     i+=1
-                    print(fmt.format(str(i), str(rec[1]), str(rec[2])))
+                    print(fmt.format(str(i), str(rec[1]), str(rec[2]),str(rec[3]) ))
                 print (bar)
 
                 while True:
