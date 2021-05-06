@@ -1,4 +1,5 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
+from mysqlsh_plugins_common import get_major_version
 
 import re
 
@@ -111,13 +112,22 @@ def copy_users_grants(dryrun=False, ocimds=False, force=False, session=None):
         search_string = 'AND user LIKE "{}"'.format(search_string)
     print("Info: locked users and users having expired password are not listed.")
 
-    # Get the list of users
-    stmt = """SELECT DISTINCT User, Host,
+    mysql_version = get_major_version(session)
+    if mysql_version == "8.0" or mysql_version == "5.7":
+        # Get the list of users
+        stmt = """SELECT DISTINCT User, Host,
                      IF(authentication_string = "","NO", "YES") HAS_PWD
               FROM mysql.user
               WHERE NOT( `account_locked`="Y" AND `password_expired`="Y" AND `authentication_string`="" ) {}
               ORDER BY User, Host;
-         """.format(search_string)
+            """.format(search_string)
+    else:
+        stmt = """SELECT DISTINCT User, Host,
+                     IF(authentication_string = "","NO", "YES") HAS_PWD
+              FROM mysql.user
+              WHERE NOT(`password_expired`="Y" AND `authentication_string`="" ) {}
+              ORDER BY User, Host;
+            """.format(search_string)
     users =  session.run_sql(stmt).fetch_all()
     final_s = ""
     if len(users)>1:
@@ -132,75 +142,77 @@ def copy_users_grants(dryrun=False, ocimds=False, force=False, session=None):
         else:
             answer = "y"
         if answer.lower() == 'y':
-            # TODO: check if the user belongs to a role
-            stmt = """SELECT from_user, from_host FROM mysql.role_edges WHERE to_user = ? and to_host = ?"""
-            roles = session.run_sql(stmt, [user[0], user[1]]).fetch_all()
-            if len(roles)>0:
-                final_s = " is"
-                question = "Do you want to copy that role ? (y/N) "
-                if len(roles)>1:
-                    final_s = "s are"
-                    question = "Do you want to copy those roles ? (y/N) "
-                print("The following role{} assigned to the user:".format(final_s))
-                for role in roles:
-                    print("- `{}`@`{}`".format(role[0], role[1]))
-                if not force:
-                    answer = shell.prompt(question, {'defaultValue': 'n'})
-                if answer.lower() == 'y':
+            if mysql_version == "8.0":
+                stmt = """SELECT from_user, from_host FROM mysql.role_edges WHERE to_user = ? and to_host = ?"""
+                roles = session.run_sql(stmt, [user[0], user[1]]).fetch_all()
+                if len(roles)>0:
+                    final_s = " is"
+                    question = "Do you want to copy that role ? (y/N) "
+                    if len(roles)>1:
+                        final_s = "s are"
+                        question = "Do you want to copy those roles ? (y/N) "
+                    print("The following role{} assigned to the user:".format(final_s))
                     for role in roles:
-                        stmt = """SHOW CREATE USER `{}`@`{}`""".format(role[0], role[1])
-                        create_user = session.run_sql(stmt).fetch_one()[0] + ";"
-                        if dryrun:
-                            print("-- Role `{}`@`{}`".format(role[0], role[1]))
-                            print("CREATE ROLE IF NOT EXISTS `{}`@`{}`;".format(role[0], role[1]))
-                            #print(create_user)
-                        else:
-                            print("Copying ROLE `{}`@`{}`: {} - {}--> {} - {}".format(role[0], role[1], session.get_uri(), server_info_origin, session_destination.get_uri(), server_info_destination))
-                            try:
-                                session_destination.run_sql("CREATE ROLE IF NOT EXISTS ?@?;",[role[0], role[1]])
-                                #session_destination.run_sql(create_user)
-                            except mysqlsh.DBError as err:
-                                print("Aborting: {}".format(err))
-                                return
-                        stmt = """SHOW GRANTS FOR `{}`@`{}`""".format(role[0], role[1])
-                        grants = session.run_sql(stmt).fetch_all()
-                        for grant in grants:
-                            if ocimds:
-                                grant_stmt = grant[0]
-                                on_stmt=re.sub(r"^.*( ON .*\..* TO .*$)",r"\1", grant_stmt)
-                                grant_stmt_tmp = re.sub('^GRANT ','', grant_stmt)
-                                grant_stmt_tmp = re.sub(' ON .*\..* TO .*$','', grant_stmt_tmp)
-                                tab_grants = grant_stmt_tmp.split(', ')
-                                tab_list = []
-                                for priv in tab_grants:
-                                    for allowed_priv in mds_allowed_privileges:
-                                        if allowed_priv == priv:
-                                            tab_list.append(allowed_priv)
-                                            break
-                                if len(tab_list)>0:
-                                    grant_stmt="GRANT " + ', '.join(tab_list) + on_stmt
-                                else:
-                                    grant_stmt=None
-
+                        print("- `{}`@`{}`".format(role[0], role[1]))
+                    if not force:
+                        answer = shell.prompt(question, {'defaultValue': 'n'})
+                    if answer.lower() == 'y':
+                        for role in roles:
+                            stmt = """SHOW CREATE USER `{}`@`{}`""".format(role[0], role[1])
+                            create_user = session.run_sql(stmt).fetch_one()[0] + ";"
+                            if dryrun:
+                                print("-- Role `{}`@`{}`".format(role[0], role[1]))
+                                print("CREATE ROLE IF NOT EXISTS `{}`@`{}`;".format(role[0], role[1]))
+                                #print(create_user)
                             else:
-                                grant_stmt = grant[0]
-                            if grant_stmt:
-                                if dryrun:
-                                    print("{};".format(grant_stmt))
-                                else:
-                                    try:
-                                        session_destination.run_sql(grant_stmt)
-                                    except mysqlsh.DBError as err:
-                                        print("Aborting: {}".format(err))
-                                        return
+                                print("Copying ROLE `{}`@`{}`: {} - {}--> {} - {}".format(role[0], role[1], session.get_uri(), server_info_origin, session_destination.get_uri(), server_info_destination))
+                                try:
+                                    session_destination.run_sql("CREATE ROLE IF NOT EXISTS ?@?;",[role[0], role[1]])
+                                    #session_destination.run_sql(create_user)
+                                except mysqlsh.DBError as err:
+                                    print("Aborting: {}".format(err))
+                                    return
+                            stmt = """SHOW GRANTS FOR `{}`@`{}`""".format(role[0], role[1])
+                            grants = session.run_sql(stmt).fetch_all()
+                            for grant in grants:
+                                if ocimds:
+                                    grant_stmt = grant[0]
+                                    on_stmt=re.sub(r"^.*( ON .*\..* TO .*$)",r"\1", grant_stmt)
+                                    grant_stmt_tmp = re.sub('^GRANT ','', grant_stmt)
+                                    grant_stmt_tmp = re.sub(' ON .*\..* TO .*$','', grant_stmt_tmp)
+                                    tab_grants = grant_stmt_tmp.split(', ')
+                                    tab_list = []
+                                    for priv in tab_grants:
+                                        for allowed_priv in mds_allowed_privileges:
+                                            if allowed_priv == priv:
+                                                tab_list.append(allowed_priv)
+                                                break
+                                    if len(tab_list)>0:
+                                        grant_stmt="GRANT " + ', '.join(tab_list) + on_stmt
+                                    else:
+                                        grant_stmt=None
 
-                else:
-                    print("Warning: some grants may fail is the role is not created on the destination server.")
+                                else:
+                                    grant_stmt = grant[0]
+                                if grant_stmt:
+                                    if dryrun:
+                                        print("{};".format(grant_stmt))
+                                    else:
+                                        try:
+                                            session_destination.run_sql(grant_stmt)
+                                        except mysqlsh.DBError as err:
+                                            print("Aborting: {}".format(err))
+                                            return
+
+                    else:
+                        print("Warning: some grants may fail if the role is not created on the destination server.")
 
 
             stmt = """SHOW CREATE USER `{}`@`{}`""".format(user[0], user[1])
             create_user = session.run_sql(stmt).fetch_one()[0] + ";"
             create_user=create_user.replace("CREATE USER '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
+            if mysql_version != "8.0":
+                create_user=create_user.replace("BY PASSWORD","WITH 'mysql_native_password' AS")
             if dryrun:
                 print("-- User `{}`@`{}`".format(user[0], user[1]))
                 print(create_user)

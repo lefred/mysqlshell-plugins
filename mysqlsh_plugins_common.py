@@ -64,6 +64,11 @@ def get_version(session):
     col = result.fetch_one()
     return col[0].split('.')[0]
 
+def get_major_version(session):
+    result = session.run_sql("SELECT @@version")
+    col = result.fetch_one()
+    return col[0].split('.')[0]+'.'+col[0].split('.')[1]
+
 
 def run_and_show(stmt, format='table',session=None):
     import mysqlsh
