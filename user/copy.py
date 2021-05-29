@@ -207,10 +207,15 @@ def copy_users_grants(dryrun=False, ocimds=False, force=False, session=None):
                     else:
                         print("Warning: some grants may fail if the role is not created on the destination server.")
 
-
-            stmt = """SHOW CREATE USER `{}`@`{}`""".format(user[0], user[1])
-            create_user = session.run_sql(stmt).fetch_one()[0] + ";"
-            create_user=create_user.replace("CREATE USER '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
+            if mysql_version != "8.0" and mysql_version != "5.7":
+               stmt = """SHOW GRANTS FOR `{}`@`{}`""".format(user[0], user[1])
+               create_user = session.run_sql(stmt).fetch_one()[0] + ";"
+               create_user=create_user.replace(" TO '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
+               create_user = re.sub(r".*CREATE USER IF NOT","CREATE USER IF NOT", create_user)
+            else:
+               stmt = """SHOW CREATE USER `{}`@`{}`""".format(user[0], user[1])
+               create_user = session.run_sql(stmt).fetch_one()[0] + ";"
+               create_user=create_user.replace("CREATE USER '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
             if mysql_version != "8.0":
                 create_user=create_user.replace("BY PASSWORD","WITH 'mysql_native_password' AS")
             if dryrun:
@@ -229,8 +234,11 @@ def copy_users_grants(dryrun=False, ocimds=False, force=False, session=None):
             if not dryrun and len(grants)>0:
                 print("Copying GRANTS.", end='')
             for grant in grants:
-                if ocimds:
+                if "IDENTIFIED BY PASSWORD" in grant[0]:
+                    grant_stmt = re.sub(r" IDENTIFIED BY PASSWORD.*$","", grant[0])
+                else:
                     grant_stmt = grant[0]
+                if ocimds:
                     on_stmt=re.sub(r"^.*( ON .*\..* TO .*$)",r"\1", grant_stmt)
                     grant_stmt_tmp = re.sub('^GRANT ','', grant_stmt)
                     grant_stmt_tmp = re.sub(' ON .*\..* TO .*$','', grant_stmt_tmp)
@@ -245,8 +253,6 @@ def copy_users_grants(dryrun=False, ocimds=False, force=False, session=None):
                         grant_stmt="GRANT " + ', '.join(tab_list) + on_stmt
                     else:
                         grant_stmt=None
-                else:
-                    grant_stmt = grant[0]
                 if grant_stmt:
                     if dryrun:
                         print("{};".format(grant_stmt))
