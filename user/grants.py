@@ -82,7 +82,7 @@ def get_users_grants(find=None, exclude=None, session=None):
             stmt = """SHOW GRANTS FOR `{}`@`{}`""".format(user[0], user[1])
             create_user = session.run_sql(stmt).fetch_one()[0] + ";"
             create_user=create_user.replace(" TO '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
-            create_user = re.sub(r".*CREATE USER IF NOT","CREATE USER IT NOT", create_user)
+            create_user = re.sub(r".*CREATE USER IF NOT","CREATE USER IF NOT", create_user)
         else:
             stmt = """SHOW CREATE USER `{}`@`{}`""".format(user[0], user[1])
             create_user = session.run_sql(stmt).fetch_one()[0] + ";"
