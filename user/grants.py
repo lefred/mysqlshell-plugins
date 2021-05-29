@@ -1,6 +1,6 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
 from mysqlsh_plugins_common import get_major_version
-
+import re
 
 @plugin_function("user.getUsersGrants")
 def get_users_grants(find=None, exclude=None, session=None):
@@ -78,9 +78,15 @@ def get_users_grants(find=None, exclude=None, session=None):
 
     for user in users:
         print("-- User `{}`@`{}`".format(user[0], user[1]))
-        stmt = """SHOW CREATE USER `{}`@`{}`""".format(user[0], user[1])
-        create_user = session.run_sql(stmt).fetch_one()[0] + ";"
-        create_user=create_user.replace("CREATE USER '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
+        if mysql_version != "8.0" and mysql_version != "5.7":
+            stmt = """SHOW GRANTS FOR `{}`@`{}`""".format(user[0], user[1])
+            create_user = session.run_sql(stmt).fetch_one()[0] + ";"
+            create_user=create_user.replace(" TO '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
+            create_user = re.sub(r".*CREATE USER IF NOT","CREATE USER IT NOT", create_user)
+        else:
+            stmt = """SHOW CREATE USER `{}`@`{}`""".format(user[0], user[1])
+            create_user = session.run_sql(stmt).fetch_one()[0] + ";"
+            create_user=create_user.replace("CREATE USER '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
         if mysql_version != "8.0":
             create_user=create_user.replace("BY PASSWORD","WITH 'mysql_native_password' AS")
         #print("CREATE USER IF NOT EXISTS `{}`@`{}`;".format(user[0], user[1]))
