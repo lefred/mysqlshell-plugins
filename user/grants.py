@@ -1,9 +1,11 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
 from mysqlsh_plugins_common import get_major_version
+from user import mds
+
 import re
 
 @plugin_function("user.getUsersGrants")
-def get_users_grants(find=None, exclude=None, session=None):
+def get_users_grants(find=None, exclude=None, ocimds=False, session=None):
     """
     Prints CREATE USERS, ROLES and GRANT STATEMENTS
 
@@ -11,6 +13,7 @@ def get_users_grants(find=None, exclude=None, session=None):
         find (string): Users to find, wildcards can also be used. If none,
             all users and roles are returned. Default: None.
         exclude (string): Users to exclude, wildcards can also be used. Default: None.
+        ocimds (bool): Use OCI MDS compatibility mode. Default is False
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
 
@@ -56,7 +59,26 @@ def get_users_grants(find=None, exclude=None, session=None):
             stmt = """SHOW GRANTS FOR `{}`@`{}`""".format(user[0], user[1])
             grants = session.run_sql(stmt).fetch_all()
             for grant in grants:
-                print("{};".format(grant[0]))
+                if ocimds:
+                    grant_stmt = grant[0]
+                    on_stmt=re.sub(r"^.*( ON .*\..* TO .*$)",r"\1", grant_stmt)
+                    grant_stmt_tmp = re.sub('^GRANT ','', grant_stmt)
+                    grant_stmt_tmp = re.sub(' ON .*\..* TO .*$','', grant_stmt_tmp)
+                    tab_grants = grant_stmt_tmp.split(', ')
+                    tab_list = []
+                    for priv in tab_grants:
+                        for allowed_priv in mds.mds_allowed_privileges:
+                            if allowed_priv == priv:
+                                tab_list.append(allowed_priv)
+                                break
+                    if len(tab_list)>0:
+                        grant_stmt="GRANT " + ', '.join(tab_list) + on_stmt
+                    else:
+                        grant_stmt=None
+                else:
+                    grant_stmt = grant[0]
+                if grant_stmt:
+                    print("{};".format(grant_stmt))
 
         # Get the list of users
         stmt = """SELECT DISTINCT User, Host FROM mysql.user
@@ -94,9 +116,28 @@ def get_users_grants(find=None, exclude=None, session=None):
         stmt = """SHOW GRANTS FOR `{}`@`{}`""".format(user[0], user[1])
         grants = session.run_sql(stmt).fetch_all()
         for grant in grants:
+            #if "IDENTIFIED BY PASSWORD" in grant[0]:
+            #    grant_to_print = re.sub(r" IDENTIFIED BY PASSWORD.*$","", grant[0])
+            #else:
             grant_to_print = grant[0]
-            if mysql_version != "8.0":
-               grant_to_print=grant_to_print.split("IDENTIFIED BY PASSWORD")[0]
-            print("{};".format(grant_to_print))
+            if ocimds:
+                on_stmt=re.sub(r"^.*( ON .*\..* TO .*$)",r"\1", grant_to_print)
+                grant_stmt_tmp = re.sub('^GRANT ','', grant_to_print)
+                grant_stmt_tmp = re.sub(' ON .*\..* TO .*$','', grant_stmt_tmp)
+                tab_grants = grant_stmt_tmp.split(', ')
+                tab_list = []
+                for priv in tab_grants:
+                    for allowed_priv in mds.mds_allowed_privileges:
+                        if allowed_priv == priv:
+                            tab_list.append(allowed_priv)
+                            break
+                if len(tab_list)>0:
+                    grant_stmt="GRANT " + ', '.join(tab_list) + on_stmt
+                else:
+                    grant_stmt=None
+                if grant_stmt:
+                    print("{};".format(grant_stmt))
+            else:
+                print("{};".format(grant_to_print))
 
     return

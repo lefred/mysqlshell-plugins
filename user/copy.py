@@ -1,5 +1,6 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
 from mysqlsh_plugins_common import get_major_version
+from user import mds
 
 import re
 
@@ -12,34 +13,6 @@ session_destination = None
 session_origin = None
 server_info_destination = None
 server_info_origin = None
-
-mds_allowed_privileges = [
-    "ALTER",
-    "ALTER ROUTINE",
-    "CREATE",
-    "CREATE ROLE",
-    "CREATE ROUTINE",
-    "CREATE TEMPORARY TABLES",
-    "CREATE USER",
-    "CREATE VIEW",
-    "DELETE",
-    "DROP",
-    "DROP ROLE",
-    "EVENT",
-    "EXECUTE",
-    "INDEX",
-    "INSERT",
-    "LOCK TABLES",
-    "PROCESS",
-    "REFERENCES",
-    "REPLICATION CLIENT",
-    "REPLICATION SLAVE",
-    "SELECT",
-    "SHOW DATABASES",
-    "SHOW VIEW",
-    "TRIGGER",
-    "UPDATE"
-]
 
 
 def _get_server_info(session):
@@ -183,7 +156,7 @@ def copy_users_grants(dryrun=False, ocimds=False, force=False, session=None):
                                     tab_grants = grant_stmt_tmp.split(', ')
                                     tab_list = []
                                     for priv in tab_grants:
-                                        for allowed_priv in mds_allowed_privileges:
+                                        for allowed_priv in mds.mds_allowed_privileges:
                                             if allowed_priv == priv:
                                                 tab_list.append(allowed_priv)
                                                 break
@@ -245,7 +218,7 @@ def copy_users_grants(dryrun=False, ocimds=False, force=False, session=None):
                     tab_grants = grant_stmt_tmp.split(', ')
                     tab_list = []
                     for priv in tab_grants:
-                        for allowed_priv in mds_allowed_privileges:
+                        for allowed_priv in mds.mds_allowed_privileges:
                             if allowed_priv == priv:
                                 tab_list.append(allowed_priv)
                                 break
