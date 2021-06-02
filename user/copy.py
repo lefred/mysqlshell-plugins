@@ -95,7 +95,18 @@ def copy_users_grants(dryrun=False, ocimds=False, force=False, session=None):
               ORDER BY User, Host;
             """.format(search_string)
     else:
-        stmt = """SELECT DISTINCT User, Host,
+        stmt = """SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA='mysql' AND TABLE_NAME='user' AND COLUMN_NAME='password';"""
+        old_format = session.run_sql(stmt).fetch_all()
+        if len(old_format) > 0:
+            stmt = """SELECT DISTINCT User, Host,
+                     IF(password = "","NO", "YES") HAS_PWD
+              FROM mysql.user
+              WHERE NOT(`password_expired`="Y" AND `authentication_string`="" ) {}
+              ORDER BY User, Host;
+            """.format(search_string)
+        else:
+            stmt = """SELECT DISTINCT User, Host,
                      IF(authentication_string = "","NO", "YES") HAS_PWD
               FROM mysql.user
               WHERE NOT(`password_expired`="Y" AND `authentication_string`="" ) {}
@@ -234,7 +245,8 @@ def copy_users_grants(dryrun=False, ocimds=False, force=False, session=None):
                             session_destination.run_sql(grant_stmt)
                             print(".", end='')
                         except mysqlsh.DBError as err:
-                            print("Aborting: {}".format(err))
+                            print("\nAborting: {}".format(err))
+                            print("You may need to install mysql-client to save the password.")
                             return
             if not dryrun and len(grants)>0:
                 print("\nUser(s) copied successfully!")
