@@ -136,10 +136,10 @@ def get_users_grants(find=None, exclude=None, ocimds=False, session=None):
         stmt = """SHOW GRANTS FOR `{}`@`{}`""".format(user[0], user[1])
         grants = session.run_sql(stmt).fetch_all()
         for grant in grants:
-            #if "IDENTIFIED BY PASSWORD" in grant[0]:
-            #    grant_to_print = re.sub(r" IDENTIFIED BY PASSWORD.*$","", grant[0])
-            #else:
             grant_to_print = grant[0]
+            if len(old_format) > 0:
+                if "IDENTIFIED BY PASSWORD" in grant[0]:
+                    grant_to_print = re.sub(r" IDENTIFIED BY PASSWORD.*$","", grant[0])
             if ocimds:
                 on_stmt=re.sub(r"^.*( ON .*\..* TO .*$)",r"\1", grant_to_print)
                 grant_stmt_tmp = re.sub('^GRANT ','', grant_to_print)
