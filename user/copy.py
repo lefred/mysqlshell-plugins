@@ -48,6 +48,7 @@ def copy_users_grants(dryrun=False, ocimds=False, force=False, session=None):
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell
+    old_format = None
 
     if session is None:
         session = shell.get_session()
@@ -201,7 +202,13 @@ def copy_users_grants(dryrun=False, ocimds=False, force=False, session=None):
                create_user = session.run_sql(stmt).fetch_one()[0] + ";"
                create_user=create_user.replace("CREATE USER '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
             if mysql_version != "8.0":
-                create_user=create_user.replace("BY PASSWORD","WITH 'mysql_native_password' AS")
+                if len(old_format) > 0:
+                    # we need to find the password
+                    stmt = "SELECT password FROM mysql.user WHERE user='{}' AND host='{}'".format(user[0], user[1])
+                    pwd = session.run_sql(stmt).fetch_one()[0]
+                    create_user=create_user.replace("BY PASSWORD","WITH 'mysql_native_password' AS '{}'".format(pwd))
+                else:
+                    create_user=create_user.replace("BY PASSWORD","WITH 'mysql_native_password' AS")
             if dryrun:
                 print("-- User `{}`@`{}`".format(user[0], user[1]))
                 print(create_user)
