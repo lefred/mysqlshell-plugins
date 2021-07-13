@@ -79,7 +79,7 @@ You can then just install it. However, on some systems, the version of Python 3 
 linked with MySQL Shell. This is the case with OL7/OL8 where Python 3.6 is installed and MySQL Shell Enterprise build provides
 Python 3.7.
 
-If this is the case for you, you can install the missing modules within MySQL Shell too using ``mysqlsh --pum pip``.
+If this is the case for you, you can install the missing modules within MySQL Shell too using ``mysqlsh --pym pip``.
 
 **Example with requests**:
 
