@@ -165,7 +165,7 @@ def show_locks(limit=10, session=None):
                                 print("(", end='')
                                 for column in columns:
                                     if len(column) == 10 and str(column).startswith("0x"):
-                                        column_to_disp = struct.unpack('f', struct.pack('>l', int(column, 0)))[0]
+                                        column_to_disp = int(struct.unpack('f', struct.pack('>l', int(column, 0)))[0])
                                     else:
                                         column_to_disp = column
                                     if i < len(columns)-2:
@@ -181,7 +181,7 @@ def show_locks(limit=10, session=None):
                                 i=0
                                 for column in columns:
                                     if len(column) == 10 and str(column).startswith("0x"):
-                                        column_to_disp = struct.unpack('f', struct.pack('>l', int(column, 0)))[0]
+                                        column_to_disp = int(struct.unpack('f', struct.pack('>l', int(column, 0)))[0])
                                     else:
                                         column_to_disp = column
                                     if i < (len(columns))-1:
@@ -211,15 +211,20 @@ def show_locks(limit=10, session=None):
             print("None")
         # STAEMENTS BLOCKING US
         stmt = """SELECT REPLACE(locked_table,'`','') `TABLE`, locked_type, PROCESSLIST_INFO, waiting_lock_mode,
-                         waiting_trx_rows_locked, waiting_trx_started, wait_age_secs, blocking_pid
+                         waiting_trx_rows_locked, waiting_trx_started, wait_age_secs, blocking_pid, last_statement
                   FROM performance_schema.threads AS t
                   JOIN sys.innodb_lock_waits AS ilw
-                    ON ilw.waiting_pid = t.PROCESSLIST_ID where waiting_pid={}""".format(answer)
+                    ON ilw.waiting_pid = t.PROCESSLIST_ID 
+                  JOIN sys.processlist proc 
+                    ON proc.conn_id = blocking_pid
+                  WHERE waiting_pid={}""".format(answer)
         result = session.run_sql(stmt)
         rows = result.fetch_all()
         for row in rows:
-            print("BLOCKED FOR {} SECONDS BY (mysql_thread_id: {})".format(row[6], row[7]))
-            print("    \033[31m{}\033[0m".format(row[2]))
+            print("\nBLOCKED FOR {} SECONDS BY (mysql_thread_id: {})".format(row[6], row[7]))
+            print("\nLast statement of the blocking trx:")
+            print("-----------------------------------")
+            print("\033[31m{}\033[0m\n".format(row[8]))
         # STATEMENTS WE ARE BLOCKING
         stmt = """SELECT REPLACE(locked_table,'`','') `TABLE`, locked_type, waiting_query, waiting_lock_mode,
                          waiting_trx_rows_locked, waiting_trx_started, wait_age_secs, processlist_id
@@ -229,8 +234,10 @@ def show_locks(limit=10, session=None):
         result = session.run_sql(stmt)
         rows = result.fetch_all()
         for row in rows:
-            print("BLOCKING {} ({}) LOCK ON {} FOR {} SECONDS (mysql_thread_id: {})".format(row[1], row[3], row[0], row[6], row[7]))
-            print("    \033[33m{}\033[0m".format(row[2]))
+            print("\nBLOCKING {} ({}) LOCK ON {} FOR {} SECONDS (mysql_thread_id: {})".format(row[1], row[3], row[0], row[6], row[7]))
+            print("\nStatement we are blocking:")
+            print("--------------------------")
+            print("\033[33m{}\033[0m\n".format(row[2]))
 
 
     else:
