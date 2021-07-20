@@ -201,7 +201,7 @@ def copy_users_grants(dryrun=False, ocimds=False, force=False, session=None):
                stmt = """SHOW CREATE USER `{}`@`{}`""".format(user[0], user[1])
                create_user = session.run_sql(stmt).fetch_one()[0] + ";"
                create_user=create_user.replace("CREATE USER '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
-            if mysql_version != "8.0":
+            if mysql_version != "8.0" and mysql_version != "5.7":
                 if len(old_format) > 0:
                     # we need to find the password
                     stmt = "SELECT password FROM mysql.user WHERE user='{}' AND host='{}'".format(user[0], user[1])
