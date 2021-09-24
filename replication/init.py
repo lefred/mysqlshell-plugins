@@ -8,8 +8,8 @@ class replication:
     """
    Replication utilities.
 
-    A collection of tools and utilities to perform checks on your
-    MySQL Query Execution Plan
+    A collection of tools and utilities to perform checks and fix
+    MySQL Replication Channel
 
     """
 
