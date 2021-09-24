@@ -18,7 +18,7 @@ class qep:
 @plugin_function("qep.get")
 def get_qep(session=None):
     """
-    Prints the Query Execution Plan for a query"
+    Prints the Query Execution Plan for a query
 
     This function prints the QEP for a query in different format:
        - traditional
