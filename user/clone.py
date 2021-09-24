@@ -12,7 +12,7 @@ def _get_server_info(session):
 @plugin_function("user.clone")
 def copy_users_grants(userfrom=None, userto=None, dryrun=False, ocimds=False, force=False, session=None):
     """
-    Copy a user to another server
+    Clone a user to the same server
 
     Args:
         userfrom (string): User to clone from as 'user@host'
