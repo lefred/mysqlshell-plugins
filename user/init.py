@@ -54,3 +54,4 @@ def create_user(verbose=False, session=None):
 
 from user import grants
 from user import copy
+from user import clone
