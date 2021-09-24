@@ -19,7 +19,7 @@ def copy_users_grants(userfrom=None, userto=None, dryrun=False, ocimds=False, fo
         userto (string): User to clone to as 'user@host'
         dryrun (bool): Don't run the statements but only shows them.
         ocimds (bool): Use OCI MDS compatibility mode. Default is False.
-        force (bool): Reply "yes" to all questions when the plan is to copy multiple users. Default is False.
+        force (bool): Reply "yes" to all questions when the plan is to copy non iteractively. Default is False.
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
 
