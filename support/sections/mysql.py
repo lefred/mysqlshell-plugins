@@ -20,9 +20,12 @@ def get_dataset(session):
     output = util.output("Dataset", "")
     while result.has_data():
         object_res = result.fetch_one_object()
-        for key in object_res:
-            output += util.output(key, object_res[key], 1)
-        result.next_result()
+        if object_res:
+            for key in object_res:
+                output += util.output(key, object_res[key], 1)
+            result.next_result()
+        else:
+            break
 
     return output
 
@@ -68,7 +71,7 @@ def get_tables_without_pk(session):
         return(util.print_red("Error importing module prettytable, check if it's installed"))
 
     stmt = """SELECT concat(tables.table_schema, '/' , tables.table_name) as `Table Name`, tables.engine as `Engine`,
-       tables.table_rows as `Row` FROM information_schema.tables  LEFT JOIN (
+       tables.table_rows as `Rows` FROM information_schema.tables  LEFT JOIN (
           SELECT table_schema , table_name
           FROM information_schema.statistics
           GROUP BY table_schema, table_name, index_name HAVING

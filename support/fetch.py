@@ -118,8 +118,8 @@ def get_fetch_info(mysql=True, os=False, advices=False, session=None):
             print("No session specified. Either pass a session object to this "
                   "function or connect the shell to a database")
             return
-    hostname = fetch._get_hostname(session)
-    datadirs = fetch._get_datadirs(session)
+    hostname = _get_hostname(session)
+    datadirs = _get_datadirs(session)
     header = "Report for %s - %s" % (hostname,datetime.strftime(datetime.now(), "%a %Y-%m-%d %H:%M"))
     print("=" * len(header))
     print(header)
@@ -127,12 +127,12 @@ def get_fetch_info(mysql=True, os=False, advices=False, session=None):
     # check if we need to get info related to OS
     if os == True:
         # check if we are running the shell locally
-        if fetch._is_local(session, shell):
+        if _is_local(session, shell):
             # we are connected locally
-            osname_sql = fetch._get_os(session)
+            osname_sql = _get_os(session)
             osname, name, version, arch, processor, nb_cpu = _get_all_common_os_info()
             if osname_sql == "Linux":
-               output2 = fetch._get_all_info_linux(datadirs, advices)
+               output2 = _get_all_info_linux(datadirs, advices)
             else:
                 print("Your OS (%s) is now yet supported." % osname_sql)
 
@@ -147,6 +147,6 @@ def get_fetch_info(mysql=True, os=False, advices=False, session=None):
             print("For Operating System information you need to run the shell locally")
 
     if mysql == True:
-        output = fetch._get_all_mysql_info(session)
+        output = _get_all_mysql_info(session)
         print(output)
     return
