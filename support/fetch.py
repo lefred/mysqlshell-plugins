@@ -82,15 +82,23 @@ def _get_all_info_linux(datadirs, advices):
     output += disks.get_linux_disk_info(datadirs)
     return output
 
-def _get_all_mysql_info(session):
+def _get_all_mysql_info(session, advices):
     supported, output = mysql.version_info(session)
     if not supported:
         util.print_red("Your MySQL version is not supported !")
     else:
         # get all dataset
         output += mysql.get_dataset(session)
+        output += mysql.get_engines(session, advices)
         output += mysql.get_largest_innodb_tables(session)
-        output += mysql.get_tables_without_pk(session)
+        output += mysql.get_tables_without_pk(session, advices)
+        output += mysql.get_configured_variables(session)
+        output += replication.get_replication_info(session, advices)
+        output += mysql.get_flush_commands(session, advices)
+        output += "\n"
+        output += mysql.get_users_auth_plugins(session, advices)
+        output += mysql.get_users_privileges(session, advices)
+
     return output
 
 @plugin_function("support.fetchInfo")
@@ -147,6 +155,6 @@ def get_fetch_info(mysql=True, os=False, advices=False, session=None):
             print("For Operating System information you need to run the shell locally")
 
     if mysql == True:
-        output = _get_all_mysql_info(session)
+        output = _get_all_mysql_info(session, advices)
         print(output)
     return
