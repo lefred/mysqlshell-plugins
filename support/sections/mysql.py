@@ -11,7 +11,8 @@ def version_info(session):
     output = util.output("MySQL Version", "%s (%s) - %s" % (row[0], row[1], row[2]))
     if int(row[1][0]) >= 8 and row[0].startswith('MySQL'):
         supported = True
-    return supported, output
+    version = row[1]
+    return supported, output, version
 
 def get_dataset(session):
     stmt = """SELECT format_bytes(SUM(data_length)) Data,

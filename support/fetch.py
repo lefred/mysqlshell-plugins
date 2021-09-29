@@ -5,6 +5,7 @@
 #
 
 import os
+from platform import version
 import subprocess
 from datetime import datetime
 from support.sections import *
@@ -83,7 +84,7 @@ def _get_all_info_linux(datadirs, advices):
     return output
 
 def _get_all_mysql_info(session, advices):
-    supported, output = mysql.version_info(session)
+    supported, output, version = mysql.version_info(session)
     if not supported:
         util.print_red("Your MySQL version is not supported !")
     else:
@@ -98,7 +99,6 @@ def _get_all_mysql_info(session, advices):
         output += "\n"
         output += mysql.get_users_auth_plugins(session, advices)
         output += mysql.get_users_privileges(session, advices)
-
     return output
 
 @plugin_function("support.fetchInfo")
