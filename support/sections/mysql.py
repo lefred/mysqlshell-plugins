@@ -34,7 +34,7 @@ def get_dataset(session):
 
 
 
-def get_largest_innodb_tables(session, limit=10, details=False):
+def get_largest_innodb_tables(session, details=False, limit=10):
 
     if not details:
         return ""
@@ -74,13 +74,14 @@ def get_tables_without_pk(session, advices=False, details=False):
         tbl_no_pk += 1
 
     output = util.output(title, tbl_no_pk)
-    
-    #output, nbrows = util.run_and_print(title, stmt, session)
-
 
     if advices:
         if tbl_no_pk > 0:
              output += util.print_red("It's not recommended to have tables without Primary Key")
+
+    if details:
+        output2, nbrows = util.run_and_print("Details", stmt, session)
+        output += output2
          
     return output
 
@@ -101,11 +102,14 @@ def get_engines(session, advices=False, details=False):
             got_inno = True
         else:
             other = True
-    #output, nbrows = util.run_and_print(title, stmt, session)
 
     if advices:
         if not got_inno or other: 
              output += util.print_red("It's recommended to only use InnoDB")
+
+    if details:
+        output2, nbrows = util.run_and_print("Details".format(title), stmt, session)
+        output += output2
 
     return output
 
@@ -128,7 +132,7 @@ def get_configured_variables(session, details=False):
                JOIN performance_schema.global_variables t2 
                ON t2.VARIABLE_NAME=t1.VARIABLE_NAME 
                WHERE t1.VARIABLE_SOURCE != 'COMPILED'"""
-        output2, nbrows = util.run_and_print(title, stmt, session)
+        output2, nbrows = util.run_and_print("Details".format(title), stmt, session)
         output += output2
     return output
 

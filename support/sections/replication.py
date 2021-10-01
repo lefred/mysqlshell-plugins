@@ -6,7 +6,7 @@ def get_replication_info(session, advices):
     stmt = """select @@server_id, @@binlog_checksum, @@binlog_encryption, @@binlog_format, @@binlog_row_image,
                      @@binlog_row_metadata, @@enforce_gtid_consistency, @@gtid_mode, @@log_bin, 
                      @@log_bin_basename, @@transaction_write_set_extraction,
-                     @@binlog_transaction_dependency_tracking"""
+                     @@binlog_transaction_dependency_tracking, @@lower_case_table_names"""
     result = session.run_sql(stmt)
     row = result.fetch_one()
     output = ("\n")
@@ -31,6 +31,11 @@ def get_replication_info(session, advices):
     output += util.output("Log Bin Basename", "{}".format(row[9]))
     output += util.output("Trx Write Set Extraction", "{}".format(row[10]))
     output += util.output("Binlog Trx Dependency Tracking", "{}".format(row[11]))
+    if row[12] == "1":
+        output += util.output("Lower Case Table Names", "{}".format(row[12]))
+        if advices:
+            output += util.print_orange("For MDS Inbound Replication, lower_case_table_names should be 0")
+
 
     return output
 

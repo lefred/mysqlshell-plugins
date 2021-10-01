@@ -83,7 +83,7 @@ def _get_all_info_linux(datadirs, advices):
     output += disks.get_linux_disk_info(datadirs)
     return output
 
-def _get_all_mysql_info(session, advices):
+def _get_all_mysql_info(session, advices, details):
     supported, output, version = mysql.version_info(session)
     if not supported:
         util.print_red("Your MySQL version is not supported !")
@@ -91,9 +91,9 @@ def _get_all_mysql_info(session, advices):
         # get all dataset
         output += mysql.get_dataset(session)
         output += mysql.get_engines(session, advices)
-        output += mysql.get_largest_innodb_tables(session)
-        output += mysql.get_tables_without_pk(session, advices)
-        output += mysql.get_configured_variables(session)
+        output += mysql.get_largest_innodb_tables(session, details)
+        output += mysql.get_tables_without_pk(session, advices, details)
+        output += mysql.get_configured_variables(session, details)
         output += replication.get_replication_info(session, advices)
         output += mysql.get_flush_commands(session, advices)
         output += "\n"
@@ -102,7 +102,7 @@ def _get_all_mysql_info(session, advices):
     return output
 
 @plugin_function("support.fetchInfo")
-def get_fetch_info(mysql=True, os=False, advices=False, session=None):
+def get_fetch_info(mysql=True, os=False, advices=False, details=False, session=None):
     """
     Fetch info from the system.
 
@@ -110,6 +110,7 @@ def get_fetch_info(mysql=True, os=False, advices=False, session=None):
         mysql (bool): Fetch info from MySQL (enabled by default).
         os (bool): Fetch info from Operating System (requires to have the Shell running locally) This is disabled by default.
         advices (bool): Print eventual advices. This is disabled by default.
+        details (bool): Print eventual details when possible. This is disabled by default.
         session (object): The session to be used on the operation.
     """
 
@@ -155,6 +156,6 @@ def get_fetch_info(mysql=True, os=False, advices=False, session=None):
             print("For Operating System information you need to run the shell locally")
 
     if mysql == True:
-        output = _get_all_mysql_info(session, advices)
+        output = _get_all_mysql_info(session, advices, details)
         print(output)
     return
