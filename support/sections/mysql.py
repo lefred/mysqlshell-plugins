@@ -8,17 +8,35 @@ def version_info(session):
     stmt = "select @@version_comment, @@version, @@version_compile_machine"
     result = session.run_sql(stmt)
     row = result.fetch_one()
-    output = util.output("MySQL Version", "%s (%s) - %s" % (row[0], row[1], row[2]))
+    type = _get_type_by_pid(session)
+    output = util.output("MySQL Version", "{} ({}) - {} {}".format(row[0], row[1], row[2], type))
     if int(row[1][0]) >= 8 and row[0].startswith('MySQL'):
         supported = True
     version = row[1]
+    stmt = "show variables like 'aurora_version'"
+    result = session.run_sql(stmt)
+    row = result.fetch_one()
+    if row:
+        output += util.output("Aurora", "{}".format(row[1]))
     return supported, output, version
 
-def get_dataset(session):
+def get_dataset(session, branch):
     stmt = """SELECT format_bytes(SUM(data_length)) Data,
                      format_bytes(SUM(index_length)) Indexes,
                      format_bytes(SUM(data_length)+sum(index_length)) 'Total Size'
               FROM information_schema.TABLES GROUP BY NULL"""
+    if branch == "56":
+        stmt = """SELECT CONCAT(ROUND(SUM(data_length) / ( 1024 * 1024 * 1024 ), 2), 'G') Data,
+                     CONCAT(ROUND(SUM(index_length) / ( 1024 * 1024 * 1024 ), 2), 'G') Indexes,
+                     CONCAT(ROUND(SUM(data_length+index_length)/( 1024 * 1024 * 1024 ), 2), 'G') 'Total Size'
+              FROM information_schema.TABLES GROUP BY NULL"""
+    else:
+        if branch == "57":
+            stmt = """SELECT sys.format_bytes(SUM(data_length)) Data,
+                     sys.format_bytes(SUM(index_length)) Indexes,
+                     sys.format_bytes(SUM(data_length)+sum(index_length)) 'Total Size'
+              FROM information_schema.TABLES GROUP BY NULL"""
+
     result = session.run_sql(stmt)
     output = util.output("Dataset", "")
     while result.has_data():
@@ -34,7 +52,7 @@ def get_dataset(session):
 
 
 
-def get_largest_innodb_tables(session, details=False, limit=10):
+def get_largest_innodb_tables(session, branch, details=False, limit=10):
 
     if not details:
         return ""
@@ -51,6 +69,21 @@ def get_largest_innodb_tables(session, details=False, limit=10):
                 FROM information_schema.TABLES as t
                 JOIN information_schema.INNODB_TABLESPACES as it
                 ON it.name = concat(table_schema,"/",table_name)
+                ORDER BY (data_length + index_length) desc limit %s""" % str(limit)
+    if branch == "56":
+        stmt = """SELECT CONCAT(table_schema, '.', table_name)  as `Table Name`, CONCAT(ROUND(table_rows / 1000000, 2), 'M') as `Rows`, 
+                     CONCAT(ROUND(data_length / ( 1024 * 1024 * 1024 ), 2), 'G') `Data Size`,
+                     CONCAT(ROUND(index_length / ( 1024 * 1024 * 1024 ), 2), 'G') `Index Size`,
+                     CONCAT(ROUND(( data_length + index_length ) / ( 1024 * 1024 * 1024 ), 2), 'G') `Total Size`
+                FROM information_schema.TABLES as t
+                ORDER BY (data_length + index_length) desc limit %s""" % str(limit)
+    else:
+        if branch == "57":
+            stmt = """SELECT TABLE_NAME as `Table Name`, TABLE_ROWS as `Rows`, sys.format_bytes(data_length) `Data Size`,
+                     sys.format_bytes(index_length) `Index Size`,
+                     sys.format_bytes(data_length+index_length) `Total Size`,
+                     sys.format_bytes(data_free) `Data Free`
+                FROM information_schema.TABLES as t
                 ORDER BY (data_length + index_length) desc limit %s""" % str(limit)
                 
     output, nbrows = util.run_and_print(title, stmt, session)
@@ -79,7 +112,7 @@ def get_tables_without_pk(session, advices=False, details=False):
         if tbl_no_pk > 0:
              output += util.print_red("It's not recommended to have tables without Primary Key")
 
-    if details:
+    if details and tbl_no_pk > 0:
         output2, nbrows = util.run_and_print("Details", stmt, session)
         output += output2
          
@@ -104,7 +137,7 @@ def get_engines(session, advices=False, details=False):
             other = True
 
     if advices:
-        if not got_inno or other: 
+        if not got_inno and other: 
              output += util.print_red("It's recommended to only use InnoDB")
 
     if details:
@@ -189,4 +222,50 @@ def get_users_privileges(session, advices=False):
     if advices:
         output += output_err 
                         
+    return output
+
+def get_routines(session, advices=False, details=False):
+    title   = "User Defined Routines"
+    stmt    = "select routine_schema, count(*) `amount` from information_schema.routines where definer not in ('mysql.sys@localhost') group by routine_schema"
+    result = session.run_sql(stmt)
+    output = util.output(title, "")
+    for row in result.fetch_all():
+        output += util.output(row[0], row[1], 1)
+        if advices and row[0] in "mysql":
+            output += util.print_red("Custom routines in {} schema are not supported in MDS".format(row[0]))
+        if details:
+            stmt = """select routine_schema, routine_name, definer from information_schema.routines 
+                      where routine_schema = '{}' and definer not in ('mysql.sys@localhost')""".format(row[0])
+            output2, nbrows = util.run_and_print("Routines in {}".format(row[0]), stmt, session)
+            output += output2
+
+
+    return output
+
+def get_tables_in_mysql(session, branch, advices=False, details=False):
+    title   = "Extra tables in mysql schema"
+    stmt = "select count(*) from information_schema.tables where table_schema='mysql'"
+    output = ""
+    tot_tbl = 28 
+    if branch == "57": 
+        tot_tbl = 31
+    if branch == "80":
+        tot_tbl = 38
+    result = session.run_sql(stmt)
+    row = result.fetch_one()
+    if row[0] > tot_tbl:
+        output = util.output(title, int(row[0])-tot_tbl)
+        if advices:
+            output += util.print_red("Extra tables in mysql schema are not supported in MDS")
+        # TODO add which one 
+    return output
+        
+
+def _get_type_by_pid(session):
+    output = ""
+    stmt = "select @@pid_file"
+    result = session.run_sql(stmt)
+    row = result.fetch_one()
+    if row[0].startswith("/rdsdbdata/"):
+        output = "(AWS RDS)"
     return output

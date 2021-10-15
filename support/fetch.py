@@ -5,11 +5,13 @@
 #
 
 import os
-from platform import version
+from platform import release, version
+from re import A
 import subprocess
 from datetime import datetime
 from support.sections import *
 from mysqlsh.plugin_manager import plugin, plugin_function
+from support.sections import innodb
 
 try:
     import platform
@@ -22,8 +24,11 @@ except:
     print("Error importing module re, check if it's installed")
     exit
 
-def _is_local(session, shell):
-    stmt = "select @@hostname, @@port, @@mysqlx_port"
+def _is_local(session, shell, branch):
+    if branch == "80":
+        stmt = "select @@hostname, @@port, @@mysqlx_port"
+    else:
+        stmt = "select @@hostname, @@port, ''"
     result = session.run_sql(stmt)
     row = result.fetch_one()
     hostname = row[0]
@@ -50,9 +55,24 @@ def _get_hostname(session):
     row = result.fetch_one()
     return row[0]
 
-def _get_datadirs(session):
+def _get_version_branch(session):
+    stmt = """select @@version"""
+    result = session.run_sql(stmt)
+    row = result.fetch_one()
+    major, minor, release = row[0].split(".")
+    branch = "{}{}".format(major, minor)
+    return branch, release
+
+def _get_datadirs(session, branch):
     stmt = """select @@datadir,@@innodb_data_home_dir,@@innodb_log_group_home_dir,
               @@innodb_temp_tablespaces_dir, @@innodb_tmpdir, @@tmpdir"""
+    if branch == "56":
+        stmt = """select @@datadir,@@innodb_data_home_dir,@@innodb_log_group_home_dir"""
+    else:
+        if branch == "57":
+            stmt = """select @@datadir,@@innodb_data_home_dir,@@innodb_log_group_home_dir,
+              @@innodb_tmpdir, @@tmpdir"""
+
     result = session.run_sql(stmt)
     row = result.fetch_one_object()
     return row
@@ -85,20 +105,40 @@ def _get_all_info_linux(datadirs, advices):
 
 def _get_all_mysql_info(session, advices, details):
     supported, output, version = mysql.version_info(session)
+    branch, releasever = _get_version_branch(session)
     if not supported:
-        util.print_red("Your MySQL version is not supported !")
-    else:
-        # get all dataset
-        output += mysql.get_dataset(session)
-        output += mysql.get_engines(session, advices)
-        output += mysql.get_largest_innodb_tables(session, details)
-        output += mysql.get_tables_without_pk(session, advices, details)
+        output += util.print_orange("Your MySQL version might be old or not fully supported by this tool!")
+    
+    # get all dataset
+    output += mysql.get_dataset(session, branch)
+    output += "\n"
+    output += mysql.get_engines(session, advices)
+    output += "\n"
+    output += mysql.get_largest_innodb_tables(session, branch, details)
+    output += "\n"
+    output += mysql.get_tables_without_pk(session, advices, details)
+    output += "\n"
+    output += innodb.get_innodb_info(session, advices, branch, releasever)
+    output += "\n"
+    if branch == "80":
         output += mysql.get_configured_variables(session, details)
-        output += replication.get_replication_info(session, advices)
-        output += mysql.get_flush_commands(session, advices)
         output += "\n"
-        output += mysql.get_users_auth_plugins(session, advices)
-        output += mysql.get_users_privileges(session, advices)
+    output += replication.get_replication_info(session, advices, branch, releasever)
+    output += "\n"
+    output += mysql.get_flush_commands(session, advices)
+    output += "\n"
+    output += mysql.get_tables_in_mysql(session, branch, advices, details)
+    output += mysql.get_routines(session, advices, details)
+    output += "\n"
+    output += mysql.get_users_auth_plugins(session, advices)
+    output += "\n"
+    output += mysql.get_users_privileges(session, advices)
+    if advices:
+        major, minor, release = version.split(".")
+        if major == 5 and minor < 7:
+            output += util.print_red("For MDS Inbound Replication, you need to have at least 5.7.9")
+        if major == 5 and minor == 7 and release < 9:
+            output += util.print_orange("For MDS Inbound Replication, you need to have at least 5.7.9")
     return output
 
 @plugin_function("support.fetchInfo")
@@ -127,16 +167,18 @@ def get_fetch_info(mysql=True, os=False, advices=False, details=False, session=N
             print("No session specified. Either pass a session object to this "
                   "function or connect the shell to a database")
             return
+    branch, releasever = _get_version_branch(session)
     hostname = _get_hostname(session)
-    datadirs = _get_datadirs(session)
+    datadirs = _get_datadirs(session, branch)
     header = "Report for %s - %s" % (hostname,datetime.strftime(datetime.now(), "%a %Y-%m-%d %H:%M"))
     print("=" * len(header))
     print(header)
     print("=" * len(header))
     # check if we need to get info related to OS
     if os == True:
+        output2 = ""
         # check if we are running the shell locally
-        if _is_local(session, shell):
+        if _is_local(session, shell, branch):
             # we are connected locally
             osname_sql = _get_os(session)
             osname, name, version, arch, processor, nb_cpu = _get_all_common_os_info()
