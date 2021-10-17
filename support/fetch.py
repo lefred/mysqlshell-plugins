@@ -139,6 +139,8 @@ def _get_all_mysql_info(session, advices, details):
             output += util.print_red("For MDS Inbound Replication, you need to have at least 5.7.9")
         if major == 5 and minor == 7 and release < 9:
             output += util.print_orange("For MDS Inbound Replication, you need to have at least 5.7.9")
+    output += "\n"
+    output += hosts.get_host_info(session, advices, details, branch)
     return output
 
 @plugin_function("support.fetchInfo")
