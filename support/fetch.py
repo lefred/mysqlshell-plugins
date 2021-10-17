@@ -60,6 +60,8 @@ def _get_version_branch(session):
     result = session.run_sql(stmt)
     row = result.fetch_one()
     major, minor, release = row[0].split(".")
+    if "-" in release:
+        release, garbage = release.split("-")
     branch = "{}{}".format(major, minor)
     return branch, release
 
@@ -135,6 +137,8 @@ def _get_all_mysql_info(session, advices, details):
     output += mysql.get_users_privileges(session, advices)
     if advices:
         major, minor, release = version.split(".")
+        if "-" in release:
+            release, garbage = release.split("-")
         if major == 5 and minor < 7:
             output += util.print_red("For MDS Inbound Replication, you need to have at least 5.7.9")
         if major == 5 and minor == 7 and release < 9:
