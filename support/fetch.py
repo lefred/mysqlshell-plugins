@@ -145,6 +145,8 @@ def _get_all_mysql_info(session, advices, details):
             output += util.print_orange("For MDS Inbound Replication, you need to have at least 5.7.9")
     output += "\n"
     output += hosts.get_host_info(session, advices, details, branch)
+    output += keywords.check_reserved_keywords(session, advices, details)
+
     return output
 
 @plugin_function("support.fetchInfo")

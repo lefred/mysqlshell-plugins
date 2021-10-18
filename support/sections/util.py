@@ -6,6 +6,8 @@ def get_sysctl_value(key):
     line_sp = line.split()
     return line_sp[2].decode("utf-8")
 
+def print_red_inline(message):
+    return("\033[1;31;40m%s\033[0m" % message) 
 
 def print_red(message):
     return("\033[1;31;40m%s\033[0m\n" % message) 
