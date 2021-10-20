@@ -126,7 +126,8 @@ def get_engines(session, advices=False, details=False):
                      CONCAT(ROUND(sum(index_length) / ( 1024 * 1024 * 1024 ), 2), 'G') INDEXES,
                      CONCAT(sum(ROUND(( data_length + index_length ) / ( 1024 * 1024 * 1024 ), 2)), 'G') 'TOTAL SIZE', 
                      engine as ENGINE from information_schema.TABLES  
-              where TABLE_SCHEMA NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys') group by engine;"""
+              where TABLE_SCHEMA NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys') 
+                and data_length group by engine;"""
     result = session.run_sql(stmt)
     output = util.output(title, "")
     for row in result.fetch_all():
