@@ -148,8 +148,11 @@ def show_locks(limit=10, session=None):
                     skip=True
                 
             # if there is an index name
-            if record2[5] is not None:
-                records3=record2[6].split("|")
+            if record2[5] is not None and record2[6] is not None:
+                if "|" in record2[6]:
+                    records3=record2[6].split("|")
+                else:
+                    records3=[record2[6]]
                 next_line=False
                 j = 0
                 for record3 in records3:
