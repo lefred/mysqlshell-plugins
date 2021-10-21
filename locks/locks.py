@@ -1,4 +1,4 @@
-# check/locks.py
+# locks/locks.py
 # -----------------
 # Definition of functions for the check and display locking info
 #
@@ -6,7 +6,7 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
 import struct
 
-@plugin_function("check.getLocks")
+@plugin_function("locks.getLocks")
 def show_locks(limit=10, session=None):
     """
     Prints the locks held by threads.

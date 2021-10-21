@@ -12,7 +12,6 @@ class check:
 from check import workld
 from check import trx
 from check import queries
-from check import locks
 from check import schema
 from check import other
 from check import gtid
