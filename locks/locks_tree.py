@@ -8,14 +8,14 @@ from support.sections import util
 import struct
    
 @plugin_function("locks.getAllLocks")
-def show_locks(limit=10, session=None):
+def show_locks(timeout=1, session=None):
     """
     Prints the locks held by threads.
 
     This function list all locks held by a specific thread.
 
     Args:
-        limit (integer): The amount of query to return (default: 10).
+        timeout (integer): The timeout in seconds to retrieve extra locking info (default: 1).
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
 
@@ -71,6 +71,7 @@ def show_locks(limit=10, session=None):
     all_rows=[]
     
     for record in result.fetch_all():
+        got_waiting = False
         # get eventual thread we are blocking
         stmt = """SELECT THREAD_ID, waiting_lock_mode
                   FROM performance_schema.threads AS t
@@ -105,6 +106,7 @@ def show_locks(limit=10, session=None):
              record[9], "{} (metadata lock)".format(record[10])
         ]
         all_rows.append(row)
+        record_row=len(all_rows)-1
         # get now specific recs lock info
         stmt = """SELECT OBJECT_SCHEMA, OBJECT_NAME, LOCK_TYPE,
                         LOCK_MODE, LOCK_STATUS, INDEX_NAME, GROUP_CONCAT(LOCK_DATA SEPARATOR '|') recs
@@ -116,6 +118,8 @@ def show_locks(limit=10, session=None):
         result2 = session.run_sql(stmt)
         prev_index=''
         for record2 in result2.fetch_all():
+            if record2[4] == "WAITING":
+                got_waiting = True
             row=["","","","","","","","","","","", ""]
             if record2[5] is None:
                 row_to_append="{} {} ({}) LOCK ON {}.{}".format(record2[4], record2[2], record2[3], record2[0], record2[1])
@@ -125,7 +129,7 @@ def show_locks(limit=10, session=None):
             if record2[5] != prev_index:
                 cols=[]
                 pk_cols=[]
-                stmt = """SELECT /*+ MAX_EXECUTION_TIME(1000) */ ifi.name, ifi.pos, ii.name, ifi.index_id
+                stmt = """SELECT /*+ MAX_EXECUTION_TIME({}) */ ifi.name, ifi.pos, ii.name, ifi.index_id
                             FROM INFORMATION_SCHEMA.INNODB_TABLES it
                             LEFT JOIN INFORMATION_SCHEMA.INNODB_INDEXES ii
                                     ON ii.table_id = it.table_id AND
@@ -133,7 +137,7 @@ def show_locks(limit=10, session=None):
                             LEFT JOIN INFORMATION_SCHEMA.INNODB_FIELDS ifi
                                     ON ifi.index_id = ii.index_id
                             WHERE it.name = '{}/{}'
-                            ORDER BY ii.NAME, POS""".format(record2[5], record2[0], record2[1])
+                            ORDER BY ii.NAME, POS""".format(timeout*1000, record2[5], record2[0], record2[1])
                 prev_index=record2[5]
                 skip=False
                 try:
@@ -216,9 +220,11 @@ def show_locks(limit=10, session=None):
                         if len(records3) > 1 and j < len(records3):
                             row_to_append += "\n"
 
-
             row.append(row_to_append)
             all_rows.append(row)
+
+        if not got_waiting and len(all_rows[record_row][3]) >2:
+            all_rows[record_row][3]="{}<?>".format(all_rows[record_row][3])
 
     for row in all_rows:
         tab.add_row(row)
