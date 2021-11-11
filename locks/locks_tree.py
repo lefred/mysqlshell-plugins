@@ -225,6 +225,8 @@ def show_locks(timeout=1, session=None):
 
         if not got_waiting and len(all_rows[record_row][3]) >2:
             all_rows[record_row][3]="{}<?>".format(all_rows[record_row][3])
+            # let's try to get the thread id: 
+            no_more_blocked_thd = all_rows[record_row][0]
 
     for row in all_rows:
         tab.add_row(row)
