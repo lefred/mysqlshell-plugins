@@ -95,21 +95,21 @@ def get_users_grants(find=None, exclude=None, ocimds=False, session=None):
         else:
             stmt = """SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
                  WHERE TABLE_SCHEMA='mysql' AND TABLE_NAME='user' AND COLUMN_NAME='password';"""
-            old_format = session.run_sql(stmt).fetch_all()
-            if len(old_format) > 0:
-                stmt = """SELECT DISTINCT User, Host,
-                     IF(password = "","NO", "YES") HAS_PWD
-                FROM mysql.user
-                WHERE NOT(`password_expired`="Y" AND `authentication_string`="" ) {} {}
-                ORDER BY User, Host;
-                """.format(search_string, exclude_string)
-            else:
-                stmt = """SELECT DISTINCT User, Host,
-                     IF(authentication_string = "","NO", "YES") HAS_PWD
-                FROM mysql.user
-                WHERE NOT(`password_expired`="Y" AND `authentication_string`="" ) {} {}
-                ORDER BY User, Host;
-                """.format(search_string, exclude_string)
+        old_format = session.run_sql(stmt).fetch_all()
+        if len(old_format) > 0:
+            stmt = """SELECT DISTINCT User, Host,
+                 IF(password = "","NO", "YES") HAS_PWD
+            FROM mysql.user
+            WHERE NOT(`password_expired`="Y" AND `authentication_string`="" ) {} {}
+            ORDER BY User, Host;
+            """.format(search_string, exclude_string)
+        else:
+            stmt = """SELECT DISTINCT User, Host,
+                 IF(authentication_string = "","NO", "YES") HAS_PWD
+            FROM mysql.user
+            WHERE NOT(`password_expired`="Y" AND `authentication_string`="" ) {} {}
+            ORDER BY User, Host;
+            """.format(search_string, exclude_string)
     users =  session.run_sql(stmt).fetch_all()
 
     for user in users:
