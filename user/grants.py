@@ -95,21 +95,21 @@ def get_users_grants(find=None, exclude=None, ocimds=False, session=None):
         else:
             stmt = """SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
                  WHERE TABLE_SCHEMA='mysql' AND TABLE_NAME='user' AND COLUMN_NAME='password';"""
-        old_format = session.run_sql(stmt).fetch_all()
-        if len(old_format) > 0:
-            stmt = """SELECT DISTINCT User, Host,
-                 IF(password = "","NO", "YES") HAS_PWD
-            FROM mysql.user
-            WHERE NOT(`password_expired`="Y" AND `authentication_string`="" ) {} {}
-            ORDER BY User, Host;
-            """.format(search_string, exclude_string)
-        else:
-            stmt = """SELECT DISTINCT User, Host,
-                 IF(authentication_string = "","NO", "YES") HAS_PWD
-            FROM mysql.user
-            WHERE NOT(`password_expired`="Y" AND `authentication_string`="" ) {} {}
-            ORDER BY User, Host;
-            """.format(search_string, exclude_string)
+            old_format = session.run_sql(stmt).fetch_all()
+            if len(old_format) > 0:
+                stmt = """SELECT DISTINCT User, Host,
+                     IF(password = "","NO", "YES") HAS_PWD
+                FROM mysql.user
+                WHERE NOT(`password_expired`="Y" AND `authentication_string`="" ) {} {}
+                ORDER BY User, Host;
+                """.format(search_string, exclude_string)
+            else:
+                stmt = """SELECT DISTINCT User, Host,
+                     IF(authentication_string = "","NO", "YES") HAS_PWD
+                FROM mysql.user
+                WHERE NOT(`password_expired`="Y" AND `authentication_string`="" ) {} {}
+                ORDER BY User, Host;
+                """.format(search_string, exclude_string)
     users =  session.run_sql(stmt).fetch_all()
 
     for user in users:
@@ -124,22 +124,24 @@ def get_users_grants(find=None, exclude=None, ocimds=False, session=None):
             create_user = session.run_sql(stmt).fetch_one()[0] + ";"
             create_user=create_user.replace("CREATE USER '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
         if mysql_version != "8.0":
-            if len(old_format) > 0:
-                # we need to find the password
-                stmt = "SELECT password FROM mysql.user WHERE user='{}' AND host='{}'".format(user[0], user[1])
-                pwd = session.run_sql(stmt).fetch_one()[0]
-                create_user=create_user.replace("BY PASSWORD","WITH 'mysql_native_password' AS '{}'".format(pwd))
-            else:
-                create_user=create_user.replace("BY PASSWORD","WITH 'mysql_native_password' AS")
+            if old_format:
+                if len(old_format) > 0:
+                    # we need to find the password
+                    stmt = "SELECT password FROM mysql.user WHERE user='{}' AND host='{}'".format(user[0], user[1])
+                    pwd = session.run_sql(stmt).fetch_one()[0]
+                    create_user=create_user.replace("BY PASSWORD","WITH 'mysql_native_password' AS '{}'".format(pwd))
+                else:
+                    create_user=create_user.replace("BY PASSWORD","WITH 'mysql_native_password' AS")
         #print("CREATE USER IF NOT EXISTS `{}`@`{}`;".format(user[0], user[1]))
         print(create_user)
         stmt = """SHOW GRANTS FOR `{}`@`{}`""".format(user[0], user[1])
         grants = session.run_sql(stmt).fetch_all()
         for grant in grants:
             grant_to_print = grant[0]
-            if len(old_format) > 0:
-                if "IDENTIFIED BY PASSWORD" in grant[0]:
-                    grant_to_print = re.sub(r" IDENTIFIED BY PASSWORD.*$","", grant[0])
+            if old_format:
+                if len(old_format) > 0:
+                    if "IDENTIFIED BY PASSWORD" in grant[0]:
+                        grant_to_print = re.sub(r" IDENTIFIED BY PASSWORD.*$","", grant[0])
             if ocimds:
                 on_stmt=re.sub(r"^.*( ON .*\..* TO .*$)",r"\1", grant_to_print)
                 grant_stmt_tmp = re.sub('^GRANT ','', grant_to_print)
