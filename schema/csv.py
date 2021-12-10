@@ -93,17 +93,16 @@ def create_from_csv(filename=None, delimiter=',', column_name=True, first_as_pk=
         csv_reader = csv.reader(csv_file, delimiter=delimiter)
         line_count = 0
         for row in csv_reader:
-            if line_count == 0:
-                j=1
+            if line_count == 0 and column_name:
                 for el in row:
                     if column_name:
                         col.append({'name': el})
-                    else:
-                        col.append({'name': "col{}".format(j)})
-                        j += 1
             else:
                 j = 0                
                 for el in row:
+                    if line_count == 0 and not column_name:
+                        col.append({'name': "col{}".format(j)})
+
                     type = "varchar"
                     if is_number(el):
                         if is_int(el):
@@ -123,8 +122,8 @@ def create_from_csv(filename=None, delimiter=',', column_name=True, first_as_pk=
                             if col[j]['type'] == 'varchar':
                                 if len(el) > int(col[j]['max']):
                                     col[j]['max'] = len(el)
-
-                            elif int(el) > int(col[j]['max']):
+                            
+                            elif float(el) > float(col[j]['max']):
                                 col[j]['max'] = el
                         else:
                             col[j]['max'] = el
