@@ -6,7 +6,7 @@ class heatwave_utils:
     """
     Heatwave Utils 
 
-    A collection of utils to manage heatwavse
+    A collection of utils to manage heatwave
     """
 
 # internal function to execute SQL in the current session and return RESULTSET
