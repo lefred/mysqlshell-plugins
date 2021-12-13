@@ -1,4 +1,5 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
+from heatwave_utils.comm import __isHeatWaveOnline, __isHeatWavePlugin
 
 def __returnQueryStats(session):
    
@@ -21,12 +22,10 @@ def __returnTraceInfo(session):
     # Define the query to get the routines
     stmt = "SELECT QUERY, TRACE->'$**.Rapid_Offload_Fails' FROM INFORMATION_SCHEMA.OPTIMIZER_TRACE"
 
-
     stmt = stmt + ";"
     # Execute the query and check for warnings
     result = session.run_sql(stmt)
     return result;
-
 
 
 
@@ -50,8 +49,9 @@ def report_query_stats(session=None):
                   "function or connect the shell to a database")
             return
 
-    result= __returnQueryStats(session )
-    shell.dump_rows(result) 
+    if __isHeatWaveOnline(session)  :
+        result= __returnQueryStats(session )
+        shell.dump_rows(result) 
 
     return ;
 
@@ -63,6 +63,8 @@ def report_trace_info(session=None):
     Args:
         session (object): The optional session object
 
+    import mysqlsh
+    shell = mysqlsh.globals.shell
     """
     # Get hold of the global shell object
     import mysqlsh
@@ -75,7 +77,8 @@ def report_trace_info(session=None):
                   "function or connect the shell to a database")
             return
 
-    result= __returnTraceInfo(session )
-    shell.dump_rows(result) 
+    if __isHeatWaveOnline(session)  :
+        result= __returnTraceInfo(session)
+        shell.dump_rows(result) 
 
     return ;

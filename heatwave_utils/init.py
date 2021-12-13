@@ -1,4 +1,6 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
+from heatwave_utils.comm import __isHeatWaveOnline, __isHeatWavePlugin
+
 @plugin
 class heatwave_utils:
     """
@@ -112,12 +114,17 @@ def list_sec_loaded_tables(schema=None, session=None):
     if schema is None:
         print("No schema specified.")
         return
-	
-    db = session.get_schema(schema)
 
-    tables = __returnSecLoadedTables(session, schema)
+    if __isHeatWavePlugin(session) is False:
+        print("No HeatWave Plugin")
+        return
 
-    return tables;
+    if __isHeatWaveOnline(session) :
+        db = session.get_schema(schema)
+        tables = __returnSecLoadedTables(session, schema)
+        return tables;
+
+    return
 
 @plugin_function("heatwave_utils.list_secondary_engine_tables")
 def list_sec_engine_tables(schema=None, session=None):
@@ -144,11 +151,14 @@ def list_sec_engine_tables(schema=None, session=None):
         print("No schema specified.")
         return
 	
-    db = session.get_schema(schema)
-
-    tables = __returnSecEngineTables(session, schema)
-
-    return tables;
+    if __isHeatWavePlugin(session) is False:
+        print("No HeatWave Plugin")
+        return
+    if __isHeatWaveOnline(session) :
+        db = session.get_schema(schema)
+        tables = __returnSecEngineTables(session, schema)
+        return tables;
+    return
 
 
 @plugin_function("heatwave_utils.unload_schema")
@@ -177,13 +187,17 @@ def unload_schema(schema=None, session=None):
         print("No schema specified.")
         return
 	
-    db = session.get_schema(schema)
-    session.set_current_schema(schema)
-    table = __returnSecLoadedTables(session, schema)
-    for i in table:
-        print('alter table ' + i + ' secondary_unload')
-        result = session.run_sql('alter table ' + i + ' secondary_unload')
-        shell.dump_rows(result)
+    if __isHeatWavePlugin(session) is False:
+        print("No HeatWave Plugin")
+        return
+    if __isHeatWaveOnline(session) :
+        db = session.get_schema(schema)
+        session.set_current_schema(schema)
+        table = __returnSecLoadedTables(session, schema)
+        for i in table:
+            print('alter table ' + i + ' secondary_unload')
+            result = session.run_sql('alter table ' + i + ' secondary_unload')
+            shell.dump_rows(result)
 
 
     return
@@ -215,6 +229,10 @@ def unset_schema(schema=None, session=None):
         print("No schema specified.")
         return
 	
+    if __isHeatWavePlugin(session) is False:
+        print("No HeatWave Plugin")
+        return
+
     db = session.get_schema(schema)
     session.set_current_schema(schema)
     table = __returnSecEngineTables(session, schema)
@@ -251,11 +269,12 @@ def load_schema(schema=None, session=None):
     if schema is None:
         print("No schema specified.")
         return
-	
-    db = session.get_schema(schema)
-    session.set_current_schema(schema)
-    result = __loadSecTables(session, schema)
-    shell.dump_rows(result)
+
+    if __isHeatWavePlugin(session) :
+        db = session.get_schema(schema)
+        session.set_current_schema(schema)
+        result = __loadSecTables(session, schema)
+        shell.dump_rows(result)
 
     return
 
