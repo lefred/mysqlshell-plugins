@@ -177,6 +177,8 @@ def create_from_csv(filename=None, delimiter=',', column_name=True, first_as_pk=
             if int(el['max']) > 254:
                 type = 'text'
         elif type == 'decimal':
+            if int(el['digits']) <= int(el['decimal']):
+                el['digits'] = int(el['decimal'])+2
             type = 'decimal({},{})'.format(el['digits'], el['decimal'])
         elif type == 'int':
             if int(el['max']) > 2147483647 and el['signed'] != 'unsigned':
