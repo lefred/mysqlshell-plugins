@@ -1,5 +1,6 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
 from heatwave_utils.comm import __isHeatWaveOnline, __isHeatWavePlugin
+from heatwave_utils import comm
 
 def __returnQueryStats(session):
    
@@ -80,8 +81,12 @@ def report_trace_info(session=None):
             print("No session specified. Either pass a session object to this "
                   "function or connect the shell to a database")
             return
+    if comm.mytrace is False :
+        print("Trace is not ON, please run heatwave_utils.set_trace_on()")
+        return
 
-    if __isHeatWaveOnline(session)  :
+#    if __isHeatWaveOnline(session)  :
+    if comm.mytrace :
         result= __returnTraceInfo(session)
         shell.dump_rows(result, "vertical")
 
