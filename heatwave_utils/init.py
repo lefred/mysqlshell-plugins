@@ -1,12 +1,13 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
 from heatwave_utils.comm import __isHeatWaveOnline, __isHeatWavePlugin
+from heatwave_utils import comm
 
 @plugin
 class heatwave_utils:
     """
     Heatwave Utils 
 
-    A collection of utils to manage heatwavse
+    A collection of utils to manage heatwave
     """
 
 # internal function to execute SQL in the current session and return RESULTSET
@@ -60,7 +61,7 @@ def __returnSecEngineTables(session, schema):
         return False
     tablearray = []
     for row in tables:
-        tablearray.append( row[1] )
+        tablearray.append( row[0] + "." + row[1] )
 
     return tablearray;
 
@@ -85,7 +86,7 @@ def __returnSecLoadedTables(session, schema):
         return False
     tablearray = []
     for row in tables:
-        tablearray.append( row[1] )
+        tablearray.append( row[0] + "." + row[1] )
 
     return tablearray;
 
@@ -111,16 +112,12 @@ def list_sec_loaded_tables(schema=None, session=None):
                   "function or connect the shell to a database")
             return
 
-    if schema is None:
-        print("No schema specified.")
-        return
-
     if __isHeatWavePlugin(session) is False:
         print("No HeatWave Plugin")
         return
 
     if __isHeatWaveOnline(session) :
-        db = session.get_schema(schema)
+        # db = session.get_schema(schema)
         tables = __returnSecLoadedTables(session, schema)
         return tables;
 
@@ -147,15 +144,12 @@ def list_sec_engine_tables(schema=None, session=None):
                   "function or connect the shell to a database")
             return
 
-    if schema is None:
-        print("No schema specified.")
-        return
-	
     if __isHeatWavePlugin(session) is False:
         print("No HeatWave Plugin")
         return
+
     if __isHeatWaveOnline(session) :
-        db = session.get_schema(schema)
+        #db = session.get_schema(schema)
         tables = __returnSecEngineTables(session, schema)
         return tables;
     return
@@ -301,6 +295,8 @@ def set_trace_on( session=None):
 
     result = __runAndReturn(session, "SET SESSION optimizer_trace='enabled=on';")
     result = __runAndReturn(session, "SET optimizer_trace_offset=-2;")
+
+    comm.mytrace=True
     shell.dump_rows(result)
 
     return
@@ -327,6 +323,7 @@ def set_trace_off( session=None):
             return
 
     result = __runAndReturn(session, "SET SESSION optimizer_trace='enabled=off';")
+    comm.mytrace=False
     shell.dump_rows(result)
 
     return

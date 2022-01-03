@@ -1,3 +1,4 @@
+mytrace = False
 def __getHeatWaveStatus(session=None):
 
     import mysqlsh
