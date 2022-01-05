@@ -61,7 +61,7 @@ def is_json(s):
 
 
 @plugin_function("schema_utils.createFromCsv")
-def create_from_csv(filename=None, delimiter=',', column_name=True, first_as_pk=True, pk_auto_inc=False):
+def create_from_csv(filename=None, delimiter=',', column_name=True, first_as_pk=True, pk_auto_inc=False, limit=0):
     """
     Generates SQL CREATE TABLE statement from CSV file.
 
@@ -72,6 +72,7 @@ def create_from_csv(filename=None, delimiter=',', column_name=True, first_as_pk=
         first_as_pk (bool): Use the first column as Primary Key. Default is True.
         pk_auto_inc (bool): The PK will be defined as int unsigned auto_increment. 
                             If the first_as_pk is false, a new column will be added but invisible. Default is False
+        limit (integer): Defines the limit of lines to read form the file. Default: 0, this means no limit.
     """
 
     # Get hold of the global shell object
@@ -93,6 +94,10 @@ def create_from_csv(filename=None, delimiter=',', column_name=True, first_as_pk=
         csv_reader = csv.reader(csv_file, delimiter=delimiter)
         line_count = 0
         for row in csv_reader:
+            if limit > 0 and line_count > limit:
+                break
+            if len(row[-1]) == 0:
+                row.pop()
             if line_count == 0 and column_name:
                 for el in row:
                     if column_name:
@@ -104,6 +109,10 @@ def create_from_csv(filename=None, delimiter=',', column_name=True, first_as_pk=
                         col.append({'name': "col{}".format(j)})
 
                     type = "varchar"
+                    if len(el) == 0:
+                       if 'type' in col[j]:
+                          type = col[j]['type']
+
                     if is_number(el):
                         if is_int(el):
                             type = "int"
@@ -151,6 +160,7 @@ def create_from_csv(filename=None, delimiter=',', column_name=True, first_as_pk=
                         else:
                             col[j]['max'] = len(el)
 
+                     #print("name = {}  type = {}  value = {}".format(col[j]['name'], col[j]['type'], el))
                     j += 1
             line_count +=1
     
@@ -177,6 +187,8 @@ def create_from_csv(filename=None, delimiter=',', column_name=True, first_as_pk=
             if int(el['max']) > 254:
                 type = 'text'
         elif type == 'decimal':
+            if int(el['digits']) <= int(el['decimal']):
+                el['digits'] = int(el['decimal'])+2
             type = 'decimal({},{})'.format(el['digits'], el['decimal'])
         elif type == 'int':
             if int(el['max']) > 2147483647 and el['signed'] != 'unsigned':
@@ -208,5 +220,4 @@ def create_from_csv(filename=None, delimiter=',', column_name=True, first_as_pk=
         j += 1
     print(");") 
     return
-    
-    
+
