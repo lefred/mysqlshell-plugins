@@ -261,8 +261,6 @@ def load_schema(schema=None, session=None):
         return
 
     if __isHeatWavePlugin(session) :
-        db = session.get_schema(schema)
-        session.set_current_schema(schema)
         result = __loadSecTables(session, schema)
         shell.dump_rows(result)
 
