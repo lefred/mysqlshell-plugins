@@ -185,8 +185,6 @@ def unload_schema(schema=None, session=None):
         print("No HeatWave Plugin")
         return
     if __isHeatWaveOnline(session) :
-        db = session.get_schema(schema)
-        session.set_current_schema(schema)
         table = __returnSecLoadedTables(session, schema)
         for i in table:
             print('alter table ' + i + ' secondary_unload')
@@ -227,8 +225,6 @@ def unset_schema(schema=None, session=None):
         print("No HeatWave Plugin")
         return
 
-    db = session.get_schema(schema)
-    session.set_current_schema(schema)
     table = __returnSecEngineTables(session, schema)
     for i in table:
         print('alter table ' + i + ' secondary_engine=null')
