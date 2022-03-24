@@ -32,14 +32,15 @@ def show_locks(limit=10, session=None):
 
     stmt = """SELECT thr.processlist_id AS mysql_thread_id,
               FORMAT_PICO_TIME(trx.timer_wait) AS trx_duration,
+              format_pico_time(sum(cpu_latency)) as cpu_latency,  format_bytes(sum(current_memory)) memory,
               COUNT(case when lock_status='GRANTED' then 1 else null end) AS row_locks_held,
               COUNT(case when lock_status='PENDING' then 1 else null end) AS row_locks_pending,
               GROUP_CONCAT(DISTINCT CONCAT(object_schema, '.', object_name)) AS tables_with_locks,
-              current_statement
+              sys.format_statement(current_statement) as current_statement
               FROM performance_schema.events_transactions_current trx
               INNER JOIN performance_schema.threads thr USING (thread_id)
               LEFT JOIN performance_schema.data_locks USING (thread_id)
-              LEFT JOIN sys.processlist p on p.thd_id=thread_id
+              LEFT JOIN sys.x$processlist p on p.thd_id=thread_id
               WHERE thr.processlist_id IS NOT NULL
               GROUP BY thread_id, timer_wait ORDER BY TIMER_WAIT DESC
               LIMIT %d""" % (limit)
@@ -48,7 +49,7 @@ def show_locks(limit=10, session=None):
     columns = result.get_column_names()
     rows = result.fetch_all()
     max_length=[]
-    for i in range(6):
+    for i in range(8):
       if len(columns[i]) > max(len(str(x[i])) for x in rows):
           max_length.append(len(columns[i]))
       else:
@@ -56,28 +57,32 @@ def show_locks(limit=10, session=None):
 
     line = "+-" + max_length[0]*"-" + "-+-" + max_length[1]*"-" + "-+-" + \
            max_length[2]*"-" + "-+-" + max_length[3]*"-" + "-+-" + max_length[4]*"-" + \
-           "-+-" + max_length[5]*"-" + "-+"
+           "-+-" + max_length[5]*"-" + "-+-" + max_length[6]*"-" + "-+-" + max_length[7]*"-" + "-+"
 
     print(line)
-    print("| {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} |".\
+    print("| {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} |".\
             format(columns[0], max_length[0],\
                 columns[1], max_length[1],\
                 columns[2], max_length[2],\
                 columns[3], max_length[3],\
                 columns[4], max_length[4],\
-                columns[5], max_length[5]))
+                columns[5], max_length[5],\
+                columns[6], max_length[6],\
+                columns[7], max_length[7]))
 
     print(line)
     events=[]
     for row in rows:
         events.append(row[0])
-        print("| {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} |".\
+        print("| {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} |".\
             format(row[0], max_length[0],\
                 row[1], max_length[1],\
-                row[2], max_length[2],\
+                str(row[2] or ' '), max_length[2],\
                 row[3], max_length[3],\
-                str(row[4] or 'NULL'), max_length[4],\
-                str(row[5] or 'NULL'), max_length[5]))
+                row[4], max_length[4],\
+                row[5], max_length[5],\
+                str(row[6] or 'NULL'), max_length[6],\
+                str(row[7] or 'NULL'), max_length[7]))
     print(line)
     answer = shell.prompt("For which thread_id do you want to see locks ? (%s) " %  events[0]
                                , {'defaultValue': str(events[0])})

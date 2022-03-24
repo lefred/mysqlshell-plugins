@@ -28,9 +28,9 @@ def _chek_dba_db(session, dbok):
   `common_hash` varchar(56) DEFAULT NULL,
   `inserted` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `qep` json DEFAULT NULL,
-  `query_cost` float GENERATED ALWAYS AS (json_unquote(json_extract(`qep`,_utf8mb4'$."query_bloack"."cost_info"."query_cost"'))) VIRTUAL,
+  `query_cost` float GENERATED ALWAYS AS (json_unquote(json_extract(`qep`,_utf8mb4'$."query_block"."cost_info"."query_cost"'))) VIRTUAL,
   `qep_tree` text,
-  `version` varchar(8),
+  `version` varchar(20),
   PRIMARY KEY (`id`),
   KEY `hash_idx` (`common_hash`)
 ) ENGINE=InnoDB"""
@@ -150,9 +150,9 @@ def get_full_detail(original_query, session, dbok):
             all_ids = _load_qep_all(original_query,session)
             i = 0
             if len(all_ids)>0:
-                fmt = "| {0:>3s} | {1:20s} | {2:>11s} | {3:>7s} |"
+                fmt = "| {0:>3s} | {1:20s} | {2:>11s} | {3:>18s} |"
                 header = fmt.format("Num", "Timestamp", "Query Cost", "Version")
-                bar = "+" + "-" * 5 + "+" + "-" * 22 + "+" + "-" * 13 + "+" + "-" * 9 + "+"
+                bar = "+" + "-" * 5 + "+" + "-" * 22 + "+" + "-" * 13 + "+" + "-" * 20 + "+"
                 print (bar)
                 print (header)
                 print (bar)
