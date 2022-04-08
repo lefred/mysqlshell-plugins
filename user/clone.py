@@ -133,7 +133,9 @@ def copy_users_grants(userfrom=None, userto=None, dryrun=False, ocimds=False, fo
             else:
                stmt = """SHOW CREATE USER `{}`@`{}`""".format(user[0], user[1])
                create_user = session.run_sql(stmt).fetch_one()[0] + ";"
-               create_user=create_user.replace("CREATE USER '{}'@'{}'".format(user[0], user[1]),"CREATE USER IF NOT EXISTS {}".format(userto))               
+               #print("-- DEBUG: {}".format(create_user))
+               create_user=create_user.replace("CREATE USER `{}`@`{}`".format(user[0], user[1]),"CREATE USER IF NOT EXISTS {}".format(userto))               
+               #print("-- DEBUG: {}".format(create_user))
             if dryrun:
                 print("-- User `{}`@`{}`".format(user[0], user[1]))
                 print(create_user)
@@ -143,6 +145,7 @@ def copy_users_grants(userfrom=None, userto=None, dryrun=False, ocimds=False, fo
                     session.run_sql(create_user)
                 except mysqlsh.DBError as err:
                     print("Aborting: {}".format(err))
+                    print("-- DEBUG: {}".format(create_user))
                     return
 
             stmt = """SHOW GRANTS FOR `{}`@`{}`""".format(user[0], user[1])
