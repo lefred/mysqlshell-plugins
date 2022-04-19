@@ -1,4 +1,3 @@
-from sympy import true
 from mysqlsh.plugin_manager import plugin, plugin_function
 from mysqlsh_plugins_common import run_and_show
 
