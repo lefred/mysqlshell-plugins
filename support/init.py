@@ -9,4 +9,9 @@ class support:
     or Community Slack and Forums
     """
 
+    all_functions=[]
+    all_functions.append("fred")
+
 from support import fetch
+from support import collect
+
