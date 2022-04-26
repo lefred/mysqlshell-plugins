@@ -8,7 +8,6 @@ import os as operatingsystem
 import sys
 import time as mod_time
 
-from numpy import true_divide
 from mysqlsh.plugin_manager import plugin, plugin_function
 from support import fetch
 from support.collections import *
