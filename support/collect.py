@@ -12,6 +12,14 @@ from mysqlsh.plugin_manager import plugin, plugin_function
 from support import fetch
 from support.collections import *
 
+try:
+    import shutil
+    zip_present=True
+except:
+    print("Module shutil is not present, final compression won't be available.")
+    zip_present=False
+
+
 def _is_mds(session):
     stmt = "select @@version_comment"
     result = session.run_sql(stmt)
@@ -76,3 +84,10 @@ def get_collect_info(mysql=True, os=False, time=10, outputdir="~", session=None)
         runCollection(session, time, common.collectMDSList)
     
     runCollection(session, time, common.collectList)
+    if zip_present:
+      answer = shell.prompt(
+            'Do you want to compress the collected data ? (Y/n) ', {'defaultValue': 'y'})
+      if answer.lower() == 'y':
+        shutil.make_archive(common.outdir, "zip", common.outdir)
+        shutil.rmtree(common.outdir) 
+    
