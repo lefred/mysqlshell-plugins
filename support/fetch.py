@@ -4,7 +4,7 @@
 # that can be useful when seeking for help
 #
 
-import os
+import os as operatingsystem
 from platform import release, version
 from re import A
 import subprocess
@@ -83,7 +83,7 @@ def _get_processor_name():
     if platform.system() == "Windows":
         return platform.processor()
     elif platform.system() == "Darwin":
-        os.environ['PATH'] = os.environ['PATH'] + os.pathsep + '/usr/sbin'
+        operatingsystem.environ['PATH'] = operatingsystem.environ['PATH'] + operatingsystem.pathsep + '/usr/sbin'
         command ="sysctl -n machdep.cpu.brand_string"
         return subprocess.check_output(command).strip()
     elif platform.system() == "Linux":
@@ -95,7 +95,7 @@ def _get_processor_name():
     return ""
 
 def _get_all_common_os_info():
-    nb_cpu = os.cpu_count()
+    nb_cpu = operatingsystem.cpu_count()
     osname, name, version, _, _, arch = platform.uname()
     processor = _get_processor_name()
     return osname, name, version, arch, processor.lstrip(' '), nb_cpu
@@ -208,4 +208,13 @@ def get_fetch_info(mysql=True, os=False, advices=False, details=False, session=N
     if mysql == True:
         output = _get_all_mysql_info(session, advices, details)
         print(output)
+        answer = shell.prompt(
+            'Do you want to save the ouptut to file ? (Y/n) ', {'defaultValue': 'y'})
+        if answer.lower() == 'y':
+            outfile = "~/system_info_{}_{}.txt".format(hostname, datetime.strftime(datetime.now(), "%Y-%m-%d_%H-%M-%S"))
+            outfile = operatingsystem.path.expanduser(outfile)
+            f_output = open("{}".format(outfile), 'a')
+            f_output.write(output)
+            f_output.close()
+            print("Report has been saved in {}".format(outfile))
     return
