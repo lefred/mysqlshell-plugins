@@ -1,5 +1,7 @@
 collectList=[]
 collectMDSList=[]
+plotList=[]
+
 outdir=""
 from collections import *
 import time as mod_time

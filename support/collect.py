@@ -13,12 +13,26 @@ from support import fetch
 from support.collections import *
 
 try:
-    import shutil
-    zip_present=True
+  import shutil
+  zip_present=True
 except:
-    print("Module shutil is not present, final compression won't be available.")
-    zip_present=False
+  print("Module shutil is not present, final compression won't be available.")
+  zip_present=False
 
+try:
+  import pandas as pd
+  panda_present=True
+except:
+  print("Module pandas is not present, collected data won't be parsed.")
+  panda_present=False
+   
+if panda_present:
+  try:
+    import matplotlib.pyplot as plt
+    pyplot_present=True
+  except:
+    print("Module matplotlib is not present, collected data won't be plotted.")
+    pyplot_present=False
 
 def _is_mds(session):
     stmt = "select @@version_comment"
@@ -42,7 +56,9 @@ def runCollection(session, time, *fns):
     header = True
     minute_cpt += 1
 
-    
+def runPlot(*fns):
+  for fn in list(fns)[0]:
+    eval(fn)()    
 
 @plugin_function("support.collect")
 def get_collect_info(mysql=True, os=False, time=10, outputdir="~", session=None):
@@ -84,10 +100,49 @@ def get_collect_info(mysql=True, os=False, time=10, outputdir="~", session=None)
         runCollection(session, time, common.collectMDSList)
     
     runCollection(session, time, common.collectList)
+
+    if pyplot_present:
+      answer = shell.prompt(
+            'Do you want to plot the collected data ? (Y/n) ', {'defaultValue': 'y'})
+      if answer.lower() == 'y':
+        runPlot(common.plotList)
+
     if zip_present:
       answer = shell.prompt(
             'Do you want to compress the collected data ? (Y/n) ', {'defaultValue': 'y'})
       if answer.lower() == 'y':
         shutil.make_archive(common.outdir, "zip", common.outdir)
         shutil.rmtree(common.outdir) 
+
+@plugin_function("support.plot")
+def plot_collect_info():
+    """
+    Plot the collected data for analysis 
+
+    """ 
+    # Get hold of the global shell object
+    import mysqlsh
+    shell = mysqlsh.globals.shell
+
+    if not pyplot_present:
+      print("Required modules are missing.")
+      return
+    collectpath = shell.prompt(
+            'Please add the path to the collected data: ')
+    collectpath = operatingsystem.path.expanduser(collectpath)
+    if collectpath.endswith('.zip'):
+      print("Collected data seems to be compressed...")
+      if not operatingsystem.path.exists(collectpath):
+        print("File doesn't exist, aborting...")
+        return
+      common.outdir = operatingsystem.path.dirname(collectpath)
+      shutil.unpack_archive(collectpath, common.outdir)
+    else:  
+      if not operatingsystem.path.exists("{}/metrics.txt".format(collectpath)):
+        print("File or path not existing, aborting...")
+        return
+      common.outdir = collectpath
+    
+    runPlot(common.plotList)
+    
     
