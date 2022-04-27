@@ -42,6 +42,24 @@ def _is_mds(session):
       return True
     return False
 
+def _is_module_log_enabled(session):
+    stmt = "SELECT status FROM INFORMATION_SCHEMA.INNODB_METRICS WHERE NAME like 'log_checkpoints'"
+    result = session.run_sql(stmt)
+    row = result.fetch_one()
+    if row[0] == "enabled":
+      return True
+    return False
+   
+def _enable_module_log(session):
+     stmt = "SET GLOBAL innodb_monitor_enable = module_log"
+     result = session.run_sql(stmt)
+     return
+
+def _disable_module_log(session):
+     stmt = "SET GLOBAL innodb_monitor_disable = module_log"
+     result = session.run_sql(stmt)
+     return
+
 def runCollection(session, time, *fns):
   # loop
   minute_cpt = 1
@@ -88,6 +106,13 @@ def get_collect_info(mysql=True, os=False, time=10, outputdir="~", session=None)
             return
 
     hostname = fetch._get_hostname(session)
+    module_log_enabled = _is_module_log_enabled(session)
+    if not module_log_enabled:
+      answer = shell.prompt(
+            'Do you want to enable InnoDB Metrics for logging during the collection ? (Y/n) ', {'defaultValue': 'y'})
+      if answer.lower() == 'y':
+        _enable_module_log(session)
+        module_log_to_disable = True
     
     common.outdir = "{}/collect_{}_{}".format(outputdir, hostname, datetime.strftime(datetime.now(), "%Y-%m-%d_%H-%M-%S"))
     common.outdir = operatingsystem.path.expanduser(common.outdir)
@@ -100,7 +125,8 @@ def get_collect_info(mysql=True, os=False, time=10, outputdir="~", session=None)
         runCollection(session, time, common.collectMDSList)
     
     runCollection(session, time, common.collectList)
-
+    if module_log_to_disable:
+      _disable_module_log(session)
     if pyplot_present:
       answer = shell.prompt(
             'Do you want to plot the collected data ? (Y/n) ', {'defaultValue': 'y'})
@@ -135,7 +161,7 @@ def plot_collect_info():
       if not operatingsystem.path.exists(collectpath):
         print("File doesn't exist, aborting...")
         return
-      common.outdir = operatingsystem.path.dirname(collectpath)
+      common.outdir = operatingsystem.path.splitext(collectpath)[0]
       shutil.unpack_archive(collectpath, common.outdir)
     else:  
       if not operatingsystem.path.exists("{}/metrics.txt".format(collectpath)):
