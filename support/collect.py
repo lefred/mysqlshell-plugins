@@ -12,6 +12,26 @@ from mysqlsh.plugin_manager import plugin, plugin_function
 from support import fetch
 from support.collections import *
 
+metrics_modules_matches = {
+  "adaptive_hash_index": "module_adaptive_hash",
+  "buffer": "module_buffer",
+  "buffer_page_io": "module_buffer_page",
+  "compression": "module_compress",
+  "ddl": "module_ddl",
+  "dml": "module_dml",
+  "file_system": "module_file",
+  "change_buffer": "module_ibuf_system",
+  "icp": "module_icp",
+  "index": "module_index",
+  "innodb": "module_innodb",
+  "lock": "module_lock",
+  "recovery": "module_log",
+  "metadata": "module_metadata",
+  "os": "module_os",
+  "purge": "module_purge",
+  "transaction":  "module_trx"
+}
+
 try:
   import shutil
   zip_present=True
@@ -42,22 +62,71 @@ def _is_mds(session):
       return True
     return False
 
+def _get_all_innodb_metrics_disabled(session):
+    # find the disabled susbsytems that don't have a single metric enabled
+    stmt = """
+           select distinct subsystem, status from INFORMATION_SCHEMA.INNODB_METRICS 
+                  where subsystem != (
+                      select subsystem from (
+                        select subsystem, count(*) as tot from (
+                          select subsystem from INFORMATION_SCHEMA.INNODB_METRICS 
+                                 group by subsystem, status
+                        ) a  
+                        group by 1
+                      ) b where b.tot > 1)
+           """
+    result = session.run_sql(stmt)
+    subsystem_disabled=[]
+    rows = result.fetch_all()
+    for row in rows:
+      if row[0] in metrics_modules_matches:
+        subsystem_disabled.append(metrics_modules_matches[row[0]])
+      else:
+        subsystem_disabled.append(metrics_modules_matches["module_{}".format(row[0])])
+
+    # find all metrics disabled for a subsytem that also has some metrics enabled
+    stmt = """
+           select name from INFORMATION_SCHEMA.INNODB_METRICS
+                  where subsystem = (
+                    select subsystem from (
+                      select subsystem, count(*) as tot from (
+                        select subsystem from INFORMATION_SCHEMA.INNODB_METRICS 
+                               group by subsystem, status
+                      ) a  
+                      group by 1
+                    ) b where b.tot > 1
+                  ) and status='disabled'
+           """
+    result = session.run_sql(stmt)
+    metrics_disabled = result.fetch_all()
+    return (subsystem_disabled, metrics_disabled)
+
+
 def _is_module_log_enabled(session):
-    stmt = "SELECT status FROM INFORMATION_SCHEMA.INNODB_METRICS WHERE NAME like 'log_checkpoints'"
+    stmt = "SELECT count(*) FROM INFORMATION_SCHEMA.INNODB_METRICS WHERE STATUS='disabled'"
     result = session.run_sql(stmt)
     row = result.fetch_one()
-    if row[0] == "enabled":
+    if int(row[0]) == 0:
       return True
     return False
    
 def _enable_module_log(session):
-     stmt = "SET GLOBAL innodb_monitor_enable = module_log"
+     stmt = "SET GLOBAL innodb_monitor_enable = all"
      result = session.run_sql(stmt)
      return
 
-def _disable_module_log(session):
-     stmt = "SET GLOBAL innodb_monitor_disable = module_log"
-     result = session.run_sql(stmt)
+def _disable_module_log(session, rows_subs, rows_metrics):
+     # put it back like it was 
+     for row in rows_subs:
+       stmt = "SET GLOBAL innodb_monitor_disable = module_{}".format(row)
+       result = session.run_sql(stmt)
+     for row in rows_metrics:
+       stmt = "SET GLOBAL innodb_monitor_disable = module_{}".format(row[0])
+       try:
+         result = session.run_sql(stmt)
+       except:
+         # do nothing
+         result=""
      return
 
 def runCollection(session, time, *fns):
@@ -109,8 +178,9 @@ def get_collect_info(mysql=True, os=False, time=10, outputdir="~", session=None)
     module_log_enabled = _is_module_log_enabled(session)
     if not module_log_enabled:
       answer = shell.prompt(
-            'Do you want to enable InnoDB Metrics for logging during the collection ? (Y/n) ', {'defaultValue': 'y'})
+            'Do you want to enable ALL InnoDB Metrics for logging during the collection ? (Y/n) ', {'defaultValue': 'y'})
       if answer.lower() == 'y':
+        all_disabled_subsystem_metrics, all_disabled_metrics  = _get_all_innodb_metrics_disabled(session)
         _enable_module_log(session)
         module_log_to_disable = True
     
@@ -126,7 +196,7 @@ def get_collect_info(mysql=True, os=False, time=10, outputdir="~", session=None)
     
     runCollection(session, time, common.collectList)
     if module_log_to_disable:
-      _disable_module_log(session)
+      _disable_module_log(session, all_disabled_subsystem_metrics, all_disabled_metrics)
     if pyplot_present:
       answer = shell.prompt(
             'Do you want to plot the collected data ? (Y/n) ', {'defaultValue': 'y'})
