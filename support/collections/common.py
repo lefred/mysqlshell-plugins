@@ -43,6 +43,11 @@ def _generate_graph(filename, title, data, variables, type='area', stacked=False
     import pandas as pd
     import matplotlib.pyplot as plt
     import matplotlib.font_manager as font_manager
+    import matplotlib.colors as pltc
+    from random import sample
+
+    all_colors = [k for k,v in pltc.cnames.items()]
+    all_colors = [x for x in all_colors if not x.startswith('light')]
 
     plt.rcParams["figure.figsize"] = [10.24, 7.68]
     plt.rcParams["figure.autolayout"] = True
@@ -69,15 +74,6 @@ def _generate_graph(filename, title, data, variables, type='area', stacked=False
                        innodb_log = data_logs[i][['timestamp',variables[i][0]]]
                     else:
                        innodb_log = innodb_log.merge(data_logs[i][['timestamp',variables[i][0]]])
-                    if i < len(variables)-1:
-                        if len(variables[i+1]) > 2:
-                            #innodb_log.loc[:,["{}".format(variables[i+1][2])]] = variables[i+1][0]
-                            innodb_log.insert(2,variables[i+1][2],variables[i+1][0], True)
-               else:
-                    #innodb_log.loc[:,"{}".format(variables[i+1][2])] = variables[i+1][0]
-                    innodb_log.insert(2,variables[i+1][2],variables[i+1][0], True)
-            elif len(variables[i]) >2:
-               innodb_log[variables[i][2]] = variables[i][0]
             else:
                 if i == 0: 
                     innodb_log = data_logs[i][['timestamp',variables[i][0]]].merge(data_logs[i+1][['timestamp',variables[i+1][0]]])
@@ -86,6 +82,7 @@ def _generate_graph(filename, title, data, variables, type='area', stacked=False
             i+=1
     #innodb_log = innodb_log.iloc[1:, :]
     #ax=innodb_log.plot(kind=type,stacked=stacked, title=title).legend(loc='upper center',bbox_to_anchor=(0.5, -0.05), shadow=True, ncol=4)
+    ax=innodb_log.plot(kind=type,stacked=stacked, title=title, legend=False)
     mylegend = []
     for variable in variables:
         if len(variable) < 3:
@@ -98,7 +95,9 @@ def _generate_graph(filename, title, data, variables, type='area', stacked=False
                                                           str(round(max)).ljust(20, " "), round(mean)))
         else:
             mylegend.append("{} = {}".format(variable[2].ljust(35, " "), variable[0]))
-    ax=innodb_log.plot(kind=type,stacked=stacked, title=title, legend=False)
+            mycolor = sample(all_colors,1)[0]
+            ax.axhline(variable[0],-.5,1, label=variable[2], c=mycolor)
+
     h,l = ax.get_legend_handles_labels()
     font = font_manager.FontProperties(family='FantasqueSansMono-Regular.ttf+Powerline+Awesome',
                                    style='normal', size=11)

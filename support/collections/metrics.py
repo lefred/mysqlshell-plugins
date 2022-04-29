@@ -129,7 +129,7 @@ def plot():
     min=trx_log_data['async utilization %'].min()
     max=trx_log_data['async utilization %'].max()
     mean=trx_log_data['async utilization %'].mean()
-    mylegend.append("{} min={}% max={}% avg={}%".format("async utilization %".ljust(35, " "), 
+    mylegend.append("{} min={} max={} avg={}".format("async utilization %".ljust(35, " "), 
                                                           str(round(min)).ljust(20, " "), 
                                                           str(round(max)).ljust(20, " "), round(mean)))
     min=trx_log_data['sync utilization %'].min()
