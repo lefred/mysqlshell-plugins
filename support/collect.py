@@ -66,7 +66,7 @@ def _get_all_innodb_metrics_disabled(session):
     # find the disabled susbsytems that don't have a single metric enabled
     stmt = """
            select distinct subsystem, status from INFORMATION_SCHEMA.INNODB_METRICS 
-                  where subsystem != (
+                  where subsystem not in (
                       select subsystem from (
                         select subsystem, count(*) as tot from (
                           select subsystem from INFORMATION_SCHEMA.INNODB_METRICS 
@@ -82,12 +82,12 @@ def _get_all_innodb_metrics_disabled(session):
       if row[0] in metrics_modules_matches:
         subsystem_disabled.append(metrics_modules_matches[row[0]])
       else:
-        subsystem_disabled.append(metrics_modules_matches["module_{}".format(row[0])])
+        subsystem_disabled.append("module_{}".format(row[0]))
 
     # find all metrics disabled for a subsytem that also has some metrics enabled
     stmt = """
            select name from INFORMATION_SCHEMA.INNODB_METRICS
-                  where subsystem = (
+                  where subsystem in (
                     select subsystem from (
                       select subsystem, count(*) as tot from (
                         select subsystem from INFORMATION_SCHEMA.INNODB_METRICS 
@@ -118,10 +118,10 @@ def _enable_module_log(session):
 def _disable_module_log(session, rows_subs, rows_metrics):
      # put it back like it was 
      for row in rows_subs:
-       stmt = "SET GLOBAL innodb_monitor_disable = module_{}".format(row)
+       stmt = "SET GLOBAL innodb_monitor_disable = {}".format(row)
        result = session.run_sql(stmt)
      for row in rows_metrics:
-       stmt = "SET GLOBAL innodb_monitor_disable = module_{}".format(row[0])
+       stmt = "SET GLOBAL innodb_monitor_disable = {}".format(row[0])
        try:
          result = session.run_sql(stmt)
        except:
@@ -143,9 +143,9 @@ def runCollection(session, time, *fns):
     header = True
     minute_cpt += 1
 
-def runPlot(*fns):
+def runPlot(session, *fns):
   for fn in list(fns)[0]:
-    eval(fn)()    
+    eval(fn)(session)    
 
 @plugin_function("support.collect")
 def get_collect_info(mysql=True, os=False, time=10, outputdir="~", session=None):
@@ -176,6 +176,7 @@ def get_collect_info(mysql=True, os=False, time=10, outputdir="~", session=None)
 
     hostname = fetch._get_hostname(session)
     module_log_enabled = _is_module_log_enabled(session)
+    module_log_to_disable = False
     if not module_log_enabled:
       answer = shell.prompt(
             'Do you want to enable ALL InnoDB Metrics for logging during the collection ? (Y/n) ', {'defaultValue': 'y'})
@@ -201,7 +202,7 @@ def get_collect_info(mysql=True, os=False, time=10, outputdir="~", session=None)
       answer = shell.prompt(
             'Do you want to plot the collected data ? (Y/n) ', {'defaultValue': 'y'})
       if answer.lower() == 'y':
-        runPlot(common.plotList)
+        runPlot(session, common.plotList)
 
     if zip_present:
       answer = shell.prompt(
@@ -219,7 +220,13 @@ def plot_collect_info():
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell
-
+   
+    session = shell.get_session()
+    if session is None:
+        print("No session specified. Either pass a session object to this "
+              "function or connect the shell to a database")
+        return
+    
     if not pyplot_present:
       print("Required modules are missing.")
       return
@@ -239,6 +246,6 @@ def plot_collect_info():
         return
       common.outdir = collectpath
     
-    runPlot(common.plotList)
+    runPlot(session, common.plotList)
     
     

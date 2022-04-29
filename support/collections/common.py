@@ -54,7 +54,7 @@ def _generate_graph(filename, title, data, variables, type='area', stacked=False
     data_logs=[]
     for variable in variables:
         innodb_log = data[data['Variable_name'] == variable[0]]
-        innodb_log = innodb_log.astype({'Variable_value':'int'})
+        innodb_log = innodb_log.astype({'Variable_value':'uint64'})
         if len(variable) > 1:
            if variable[1] == 1:
               innodb_log[variable[0]] = innodb_log['Variable_value']
@@ -82,6 +82,7 @@ def _generate_graph(filename, title, data, variables, type='area', stacked=False
             i+=1
     #innodb_log = innodb_log.iloc[1:, :]
     #ax=innodb_log.plot(kind=type,stacked=stacked, title=title).legend(loc='upper center',bbox_to_anchor=(0.5, -0.05), shadow=True, ncol=4)
+    # replace Max Values by NaN
     ax=innodb_log.plot(kind=type,stacked=stacked, title=title, legend=False)
     mylegend = []
     for variable in variables:

@@ -3,18 +3,35 @@ import support.collections.common as common
 common.collectList.append("metrics.collect")
 common.plotList.append("metrics.plot")
 
+
+def _get_async_flush_point(session):
+    stmt = "select round((@@innodb_log_file_size * @@innodb_log_files_in_group) * (6/8))"
+    result = session.run_sql(stmt)
+    row = result.fetch_one()
+    return int(row[0])
+
+def _get_sync_flush_point(session):
+    stmt = "select round((@@innodb_log_file_size * @@innodb_log_files_in_group) * (7/8))"
+    result = session.run_sql(stmt)
+    row = result.fetch_one()
+    return int(row[0])
+
 def collect(session, header, minute_cpt):
     stmt = "select unix_timestamp() as `timestamp`, t1.* from sys.metrics as t1"
     common._run_me(session, stmt, header, "metrics.txt")
     return
 
-def plot():
+def plot(session):
     import pandas as pd
     import matplotlib.pyplot as plt
     import matplotlib.font_manager as font_manager
 
     data = pd.read_csv("{}/metrics.txt".format(common.outdir), sep='\t')
-     
+    #replacing high value by something
+    #data=data.replace('18446744073709551615', '99')
+    #removing high value metrics
+    data=data[data.Variable_value != '18446744073709551615']
+
     # innodb_log_writes vs innodb_log_write_requests
     common._generate_graph("innodb_log.png", "InnoDB Log", data, [["innodb_log_writes"], ["innodb_log_write_requests"]])
     # innodb_buffer_pool_reads vs innodb_buffer_pool_read_requests
@@ -97,24 +114,26 @@ def plot():
     # Checkpoint Age
     # Here we set the second element of the "variables" to 3, this means it's a
     # fix value
+    async_flush_point=_get_async_flush_point(session)
+    sync_flush_point=_get_sync_flush_point(session)
     common._generate_graph("mysql_checkpoint.png", "MySQL Checkpoint Age", data, [["log_lsn_checkpoint_age",1], 
-                                                                                  [75497472,3,"async flush point"],
-                                                                                  [88080384,3,"sync flush point"]
+                                                                                  [async_flush_point,3,"async flush point"],
+                                                                                  [sync_flush_point,3,"sync flush point"]
                                                                                  ], "line")  
 
     # Transaction Log
     # This metrics is special, so I do not use the generic one as we do some computation
     trx_log_data1 = data[data['Variable_name'] == 'log_lsn_checkpoint_age']
-    trx_log_data1 = trx_log_data1.astype({'Variable_value':'int'})
+    trx_log_data1 = trx_log_data1.astype({'Variable_value':'uint64'})
     trx_log_data1['log_lsn_checkpoint_age'] = trx_log_data1['Variable_value']
     trx_log_data2 = data[data['Variable_name'] == 'log_max_modified_age_async']
-    trx_log_data2 = trx_log_data2.astype({'Variable_value':'int'})
+    trx_log_data2 = trx_log_data2.astype({'Variable_value':'uint64'})
     trx_log_data2['log_max_modified_age_async'] = trx_log_data2['Variable_value']
 
     trx_log_data = trx_log_data1[['timestamp', 'log_lsn_checkpoint_age']].merge(trx_log_data2[['timestamp','log_max_modified_age_async']])
 
     trx_log_data2 = data[data['Variable_name'] == 'log_max_modified_age_sync']
-    trx_log_data2 = trx_log_data2.astype({'Variable_value':'int'})
+    trx_log_data2 = trx_log_data2.astype({'Variable_value':'uint64'})
     trx_log_data2['log_max_modified_age_sync'] = trx_log_data2['Variable_value']
 
     trx_log_data = trx_log_data.merge(trx_log_data2[['timestamp','log_max_modified_age_sync']])
