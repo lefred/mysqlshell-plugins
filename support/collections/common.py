@@ -42,6 +42,8 @@ def _run_me(session, stmt, header, file_name):
 def _generate_graph(filename, title, data, variables, type='area', stacked=False):
     import pandas as pd
     import matplotlib.pyplot as plt
+    plt.rcParams["figure.figsize"] = [10.24, 7.68]
+    plt.rcParams["figure.autolayout"] = True
     data_logs=[]
     for variable in variables:
         innodb_log = data[data['Variable_name'] == variable[0]]
@@ -49,8 +51,8 @@ def _generate_graph(filename, title, data, variables, type='area', stacked=False
         if len(variable) > 1:
            if variable[1] == 1:
               innodb_log[variable[0]] = innodb_log['Variable_value']
-           else:
-              innodb_log[variable[0]] = innodb_log['Variable_value']-innodb_log['Variable_value'].shift(1)
+           elif variable[1] == 0:
+              innodb_log[variable[0]] = innodb_log['Variable_value']-innodb_log['Variable_value'].shift(1)           
         else:
               innodb_log[variable[0]] = innodb_log['Variable_value']-innodb_log['Variable_value'].shift(1)
         data_logs.append(innodb_log)
@@ -59,13 +61,29 @@ def _generate_graph(filename, title, data, variables, type='area', stacked=False
             innodb_log = data_logs[i][['timestamp',variables[i][0]]]
     else:
         while i < len(data_logs)-1:
-            if i == 0:
-                innodb_log = data_logs[i][['timestamp',variables[i][0]]].merge(data_logs[i+1][['timestamp',variables[i+1][0]]])
+            if len(variables[i+1]) >2:
+               if len(variables[i]) < 3: 
+                    if i == 0:
+                       innodb_log = data_logs[i][['timestamp',variables[i][0]]]
+                    else:
+                       innodb_log = innodb_log.merge(data_logs[i][['timestamp',variables[i][0]]])
+                    if i < len(variables)-1:
+                        if len(variables[i+1]) > 2:
+                            #innodb_log.loc[:,["{}".format(variables[i+1][2])]] = variables[i+1][0]
+                            innodb_log.insert(2,variables[i+1][2],variables[i+1][0], True)
+               else:
+                    #innodb_log.loc[:,"{}".format(variables[i+1][2])] = variables[i+1][0]
+                    innodb_log.insert(2,variables[i+1][2],variables[i+1][0], True)
+            elif len(variables[i]) >2:
+               innodb_log[variables[i][2]] = variables[i][0]
             else:
-                innodb_log = innodb_log.merge(data_logs[i+1][['timestamp',variables[i+1][0]]])
+                if i == 0: 
+                    innodb_log = data_logs[i][['timestamp',variables[i][0]]].merge(data_logs[i+1][['timestamp',variables[i+1][0]]])
+                else:
+                    innodb_log = innodb_log.merge(data_logs[i+1][['timestamp',variables[i+1][0]]])
             i+=1
     #innodb_log = innodb_log.iloc[1:, :]
-    ax=innodb_log.plot(kind=type,stacked=stacked, title=title, figsize=(10.24,7.68))
+    ax=innodb_log.plot(kind=type,stacked=stacked, title=title).legend(loc='upper center',bbox_to_anchor=(0.5, -0.05), shadow=True, ncol=4)
     file_name = "{}/{}".format(outdir, filename)
     ax.figure.savefig(file_name)
     print("Plot {} generated.".format(file_name))

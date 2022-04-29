@@ -10,6 +10,8 @@ def collect(session, header, minute_cpt):
 
 def plot():
     import pandas as pd
+    import matplotlib.pyplot as plt
+
     data = pd.read_csv("{}/metrics.txt".format(common.outdir), sep='\t')
      
     # innodb_log_writes vs innodb_log_write_requests
@@ -92,6 +94,38 @@ def plot():
 
 
     # Checkpoint Age
-    common._generate_graph("mysql_checkpoint.png", "MySQL Checkpoint Age", data, [["log_lsn_checkpoint_age",1]], "area")  
+    common._generate_graph("mysql_checkpoint.png", "MySQL Checkpoint Age", data, [["log_lsn_checkpoint_age",1], 
+                                                                                  [75497472,3,"async flush point"],
+                                                                                  [88080384,3,"sync flush point"]
+                                                                                 ], "line")  
+
+    # Transaction Log
+    trx_log_data1 = data[data['Variable_name'] == 'log_lsn_checkpoint_age']
+    trx_log_data1 = trx_log_data1.astype({'Variable_value':'int'})
+    trx_log_data1['log_lsn_checkpoint_age'] = trx_log_data1['Variable_value']
+    trx_log_data2 = data[data['Variable_name'] == 'log_max_modified_age_async']
+    trx_log_data2 = trx_log_data2.astype({'Variable_value':'int'})
+    trx_log_data2['log_max_modified_age_async'] = trx_log_data2['Variable_value']
+
+    trx_log_data = trx_log_data1[['timestamp', 'log_lsn_checkpoint_age']].merge(trx_log_data2[['timestamp','log_max_modified_age_async']])
+
+    trx_log_data2 = data[data['Variable_name'] == 'log_max_modified_age_sync']
+    trx_log_data2 = trx_log_data2.astype({'Variable_value':'int'})
+    trx_log_data2['log_max_modified_age_sync'] = trx_log_data2['Variable_value']
+
+    trx_log_data = trx_log_data.merge(trx_log_data2[['timestamp','log_max_modified_age_sync']])
+
+    utilization = round((trx_log_data['log_lsn_checkpoint_age'] / 
+                                                  trx_log_data['log_max_modified_age_async']) * 100,2)
+    trx_log_data['async utilization %'] = utilization
+    utilization = round((trx_log_data['log_lsn_checkpoint_age'] / 
+                                                  trx_log_data['log_max_modified_age_sync']) * 100,2)
+    trx_log_data['sync utilization %'] = utilization
+    ax=trx_log_data[["timestamp","async utilization %", "sync utilization %"]].plot(kind="area",stacked=False, 
+                    title="MySQL InnoDB Transaction Log Utilization", figsize=(10.24,7.68))
+    file_name = "{}/{}".format(common.outdir, "innodb_trx_log_util.png")
+    ax.figure.savefig(file_name)
+    print("Plot {} generated.".format(file_name))
+    plt.close('all')
 
     return
