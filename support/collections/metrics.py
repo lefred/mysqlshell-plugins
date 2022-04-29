@@ -11,6 +11,7 @@ def collect(session, header, minute_cpt):
 def plot():
     import pandas as pd
     import matplotlib.pyplot as plt
+    import matplotlib.font_manager as font_manager
 
     data = pd.read_csv("{}/metrics.txt".format(common.outdir), sep='\t')
      
@@ -94,12 +95,15 @@ def plot():
 
 
     # Checkpoint Age
+    # Here we set the second element of the "variables" to 3, this means it's a
+    # fix value
     common._generate_graph("mysql_checkpoint.png", "MySQL Checkpoint Age", data, [["log_lsn_checkpoint_age",1], 
                                                                                   [75497472,3,"async flush point"],
                                                                                   [88080384,3,"sync flush point"]
                                                                                  ], "line")  
 
     # Transaction Log
+    # This metrics is special, so I do not use the generic one as we do some computation
     trx_log_data1 = data[data['Variable_name'] == 'log_lsn_checkpoint_age']
     trx_log_data1 = trx_log_data1.astype({'Variable_value':'int'})
     trx_log_data1['log_lsn_checkpoint_age'] = trx_log_data1['Variable_value']
@@ -121,8 +125,25 @@ def plot():
     utilization = round((trx_log_data['log_lsn_checkpoint_age'] / 
                                                   trx_log_data['log_max_modified_age_sync']) * 100,2)
     trx_log_data['sync utilization %'] = utilization
+    mylegend = []
+    min=trx_log_data['async utilization %'].min()
+    max=trx_log_data['async utilization %'].max()
+    mean=trx_log_data['async utilization %'].mean()
+    mylegend.append("{} min={}% max={}% avg={}%".format("async utilization %".ljust(35, " "), 
+                                                          str(round(min)).ljust(20, " "), 
+                                                          str(round(max)).ljust(20, " "), round(mean)))
+    min=trx_log_data['sync utilization %'].min()
+    max=trx_log_data['sync utilization %'].max()
+    mean=trx_log_data['sync utilization %'].mean()
+    mylegend.append("{} min={} max={} avg={}".format("sync utilization %".ljust(35, " "), 
+                                                          str(round(min)).ljust(20, " "), 
+                                                          str(round(max)).ljust(20, " "), round(mean)))
     ax=trx_log_data[["timestamp","async utilization %", "sync utilization %"]].plot(kind="area",stacked=False, 
-                    title="MySQL InnoDB Transaction Log Utilization", figsize=(10.24,7.68))
+                    title="MySQL InnoDB Transaction Log Utilization", figsize=(10.24,7.68), legend=False)
+    h,l = ax.get_legend_handles_labels()
+    font = font_manager.FontProperties(family='FantasqueSansMono-Regular.ttf+Powerline+Awesome',
+                                   style='normal', size=11)
+    ax.legend(h, mylegend, loc='upper center',bbox_to_anchor=(0.5, -0.05), shadow=True, ncol=1, prop=font)
     file_name = "{}/{}".format(common.outdir, "innodb_trx_log_util.png")
     ax.figure.savefig(file_name)
     print("Plot {} generated.".format(file_name))
