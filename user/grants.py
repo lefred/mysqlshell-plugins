@@ -112,12 +112,17 @@ def get_users_grants(find=None, exclude=None, ocimds=False, session=None):
                 """.format(search_string, exclude_string)
     users =  session.run_sql(stmt).fetch_all()
 
+    back_tick = False
     for user in users:
         print("-- User `{}`@`{}`".format(user[0], user[1]))
         if mysql_version != "8.0" and mysql_version != "5.7":
             stmt = """SHOW GRANTS FOR `{}`@`{}`""".format(user[0], user[1])
             create_user = session.run_sql(stmt).fetch_one()[0] + ";"
-            create_user=create_user.replace(" TO '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
+            if "`{}`@".format(user[0]) in create_user: 
+                create_user=create_user.replace(" TO `{}`@`".format(user[0]),"CREATE USER IF NOT EXISTS `{}`@`".format(user[0]))
+                back_tick=True
+            else:
+                create_user=create_user.replace(" TO '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
             create_user = re.sub(r".*CREATE USER IF NOT","CREATE USER IF NOT", create_user)
         else:
             stmt = """SHOW CREATE USER `{}`@`{}`""".format(user[0], user[1])
@@ -125,7 +130,7 @@ def get_users_grants(find=None, exclude=None, ocimds=False, session=None):
             create_user=create_user.replace("CREATE USER '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
         if mysql_version != "8.0":
             if old_format:
-                if len(old_format) > 0:
+                if len(old_format) > 0 and not back_tick:
                     # we need to find the password
                     stmt = "SELECT password FROM mysql.user WHERE user='{}' AND host='{}'".format(user[0], user[1])
                     pwd = session.run_sql(stmt).fetch_one()[0]
