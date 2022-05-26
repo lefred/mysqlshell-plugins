@@ -12,6 +12,9 @@ from mysqlsh.plugin_manager import plugin, plugin_function
 from support import fetch
 from support.collections import *
 
+global pyplot_present
+pyplot_present=False
+
 metrics_modules_matches = {
   "adaptive_hash_index": "module_adaptive_hash",
   "buffer": "module_buffer",
@@ -219,6 +222,7 @@ def plot_collect_info():
     """ 
     # Get hold of the global shell object
     import mysqlsh
+    global pyplot_present
     shell = mysqlsh.globals.shell
    
     session = shell.get_session()

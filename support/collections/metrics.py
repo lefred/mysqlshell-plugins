@@ -109,7 +109,9 @@ def plot(session):
     common._generate_graph("innodb_buffer_pool_dirty.png", "MySQL InnoDB Buffer Pool - Dirty Pages", data, [  
                                                                         ["innodb_buffer_pool_pages_data", 1], 
                                                                         ["innodb_buffer_pool_pages_dirty", 1]], "area", False)
-
+   
+    # History List Length
+    common._generate_graph("mysql_history_list_length.png", "MySQL History List Length", data, [["trx_rseg_history_len",1]], "area", False)  
 
     # Checkpoint Age
     # Here we set the second element of the "variables" to 3, this means it's a
