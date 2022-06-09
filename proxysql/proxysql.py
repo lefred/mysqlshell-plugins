@@ -26,6 +26,7 @@ class ProxySQL:
         self.max_transaction_behind = 100
         self.monitor_user = "monitor"
         self.monitor_pwd = "monitor"
+        self.use_ssl = 0
         self.uri = uri
 
         self.user = shell.parse_uri(self.uri)['user']
@@ -116,8 +117,8 @@ class ProxySQL:
             print("ERROR: you need to be connected to a InnoDB Cluster")
             return
         for host in self.members:
-            stmt = """REPLACE INTO mysql_servers(hostgroup_id,hostname,port)
-                      VALUES (1,'%s',%d);""" % (host['host'], host['port'])
+            stmt = """REPLACE INTO mysql_servers(hostgroup_id,hostname,port,use_ssl)
+                      VALUES (1,'%s',%d,%d);""" % (host['host'], host['port'], self.use_ssl)
             self.session.run_sql(stmt)
         stmt = """REPLACE into mysql_group_replication_hostgroups
                        (writer_hostgroup, backup_writer_hostgroup,
