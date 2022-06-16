@@ -134,7 +134,11 @@ def show_speed(limit=10, session=None):
                            performance_schema.replication_connection_status AS conn_status
                            JOIN performance_schema.replication_applier_status_by_worker AS applier_status
                            ON applier_status.channel_name = conn_status.channel_name
-                           WHERE conn_status.channel_name='group_replication_applier'"""
+                           WHERE conn_status.channel_name=if( 
+                                                (SELECT group_members.MEMBER_STATE 
+                                                   FROM performance_schema.replication_group_members AS group_members 
+                                                   WHERE member_id=@@global.server_uuid) = 'RECOVERING', 
+                                                        'group_replication_recovery', 'group_replication_applier')"""
             result = secondary_sessions[secondary].run_sql(stmt)
             row = result.fetch_one()
             out = "%s	%s       %s       %s	%s	%s	%s	%s" % (secondary, row[0].split(
