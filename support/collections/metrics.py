@@ -27,6 +27,15 @@ def _get_redo_log_capacity(session):
     row = result.fetch_one()
     return int(row[0])
 
+def _get_sync_pct(x, var1, var2, var3):
+    # we need to get the amount of sync utilization
+    # we do: (check_point_age - async_flush_point) / (sync_flush_point - async_flush_point) * 100
+    #        and if <0 it stays to 0
+    if(x[var1]-x[var2]) > 0:
+        x=round(((x[var1]-x[var2]) / (x[var3]-x[var2]))*100,2)
+    else:
+        x=0
+    return x
 
 def collect(session, header, minute_cpt):
     stmt = "select unix_timestamp() as `timestamp`, t1.* from sys.metrics as t1"
@@ -170,22 +179,22 @@ def plot(session):
     utilization = round((trx_log_data['log_lsn_checkpoint_age'] / 
                                                   trx_log_data['log_max_modified_age_async']) * 100,2)
     trx_log_data['async utilization %'] = utilization
-    utilization = round((trx_log_data['log_lsn_checkpoint_age'] / 
-                                                  trx_log_data['log_max_modified_age_sync']) * 100,2)
+
+    utilization = trx_log_data.apply(lambda x: _get_sync_pct(x,'log_lsn_checkpoint_age','log_max_modified_age_async', 'log_max_modified_age_sync'), axis=1)
     trx_log_data['sync utilization %'] = utilization
     mylegend = []
     min=trx_log_data['async utilization %'].min()
-    max=trx_log_data['async utilization %'].max()
+    max_val=trx_log_data['async utilization %'].max()
     mean=trx_log_data['async utilization %'].mean()
     mylegend.append("{} min={} max={} avg={}".format("async utilization %".ljust(35, " "), 
                                                           str(round(min)).ljust(20, " "), 
-                                                          str(round(max)).ljust(20, " "), round(mean)))
+                                                          str(round(max_val)).ljust(20, " "), round(mean)))
     min=trx_log_data['sync utilization %'].min()
-    max=trx_log_data['sync utilization %'].max()
+    max_val=trx_log_data['sync utilization %'].max()
     mean=trx_log_data['sync utilization %'].mean()
     mylegend.append("{} min={} max={} avg={}".format("sync utilization %".ljust(35, " "), 
                                                           str(round(min)).ljust(20, " "), 
-                                                          str(round(max)).ljust(20, " "), round(mean)))
+                                                          str(round(max_val)).ljust(20, " "), round(mean)))
     ax=trx_log_data[["timestamp","async utilization %", "sync utilization %"]].plot(kind="area",stacked=False, 
                     title="MySQL InnoDB Transaction Log Utilization", figsize=(10.24,7.68), legend=False)
     h,l = ax.get_legend_handles_labels()
