@@ -152,13 +152,32 @@ def plot(session):
         print("New Redo Log (>=8.0.30) detected")
         redo_log_capacity = _get_redo_log_capacity(session)
         async_flush_point, sync_flush_point = _get_flush_points(session)
+        soft_logical_capacity = round(((async_flush_point * 8/7) + (sync_flush_point * 16/15)) / 2)
+        hard_logical_capacity = round(redo_log_capacity * 29.8/32)
 
         common._generate_graph("mysql_checkpoint.png", "MySQL Checkpoint Age", data, [["log_lsn_checkpoint_age",1],
                                                                                 [redo_log_capacity,3,"redo log capacity"],
                                                                                 [async_flush_point,3,"async flush point"],
                                                                                 [sync_flush_point,3,"sync flush point"],
+                                                                                [soft_logical_capacity,3,"soft logical capacity"],
+                                                                                [hard_logical_capacity,3,"hard logical capacity"],
                                                                                 ], "line" )
-
+    common._generate_graph("mysql_checkpoint_lsn.png", "MySQL Checkpoint LSN Stacked (buffer / disk)", 
+                           data, [["innodb_redo_log_flushed_to_disk_lsn",1],["innodb_redo_log_current_lsn",1]], "line" )
+    common._generate_graph("mysql_checkpoint_lsn_diff.png", "MySQL Checkpoint LSN (buffer / disk)", 
+                           data, [["innodb_redo_log_flushed_to_disk_lsn",0],["innodb_redo_log_current_lsn",0]], "line" )
+    lsn_data_current = data[data['Variable_name'] == 'innodb_redo_log_current_lsn']
+    lsn_data_current = lsn_data_current.astype({'Variable_value':'uint64'})    
+    lsn_data_disk = data[data['Variable_name'] == 'innodb_redo_log_flushed_to_disk_lsn']
+    lsn_data_disk = lsn_data_disk.astype({'Variable_value':'uint64'})   
+    lsn_data_current['current_lsn'] = lsn_data_current['Variable_value']
+    lsn_data_disk['flushed_to_disk_lsn'] = lsn_data_disk['Variable_value']
+    lsn_data = lsn_data_current[['timestamp', 'current_lsn']].merge(lsn_data_disk[['timestamp','flushed_to_disk_lsn']])
+    lsn_data['Variable_value']=lsn_data['current_lsn']-lsn_data['flushed_to_disk_lsn']
+    lsn_data['Variable_name']='lsn_diff'
+    common._generate_graph("mysql_checkpoint_lsn_diff.png", "MySQL Checkpoint LSN delay\n(difference between lsn_current and lsn_flushed_to_disk)", 
+                           lsn_data, [["lsn_diff",1]], "line" )
+    
     # Transaction Log
     # This metrics is special, so I do not use the generic one as we do some computation
     trx_log_data1 = data[data['Variable_name'] == 'log_lsn_checkpoint_age']
