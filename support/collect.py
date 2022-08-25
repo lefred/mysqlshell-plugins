@@ -132,6 +132,12 @@ def _disable_module_log(session, rows_subs, rows_metrics):
          result=""
      return
 
+def runGlobalCollection(session, *fns):
+  header = False
+  for fn in list(fns)[0]:
+    eval(fn)(session, header)
+
+
 def runCollection(session, time, *fns):
   # loop
   minute_cpt = 1
@@ -192,6 +198,7 @@ def get_collect_info(mysql=True, os=False, time=10, outputdir="~", session=None)
     common.outdir = operatingsystem.path.expanduser(common.outdir)
     print("Data will be collected in {} for {} minutes".format(common.outdir, time))
     operatingsystem.makedirs(common.outdir)
+    runGlobalCollection(session, common.collectGlobalList)
     ## Open all files for collections
     if _is_mds(session):
         # do collect for MDS specific too

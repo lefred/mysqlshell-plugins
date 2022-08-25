@@ -3,6 +3,11 @@ import support.collections.common as common
 common.collectList.append("metrics.collect")
 common.plotList.append("metrics.plot")
 
+def _get_flush_points(session):
+    stmt = "select name, count from information_schema.INNODB_METRICS where name like 'log_max_%'"
+    result = session.run_sql(stmt)
+    rows = result.fetch_all()
+    return int(rows[0][1]), int(rows[1][1])
 
 def _get_async_flush_point(session):
     stmt = "select round((@@innodb_log_file_size * @@innodb_log_files_in_group) * (6/8))"
@@ -16,6 +21,13 @@ def _get_sync_flush_point(session):
     row = result.fetch_one()
     return int(row[0])
 
+def _get_redo_log_capacity(session):
+    stmt = "select @@innodb_redo_log_capacity"
+    result = session.run_sql(stmt)
+    row = result.fetch_one()
+    return int(row[0])
+
+
 def collect(session, header, minute_cpt):
     stmt = "select unix_timestamp() as `timestamp`, t1.* from sys.metrics as t1"
     common._run_me(session, stmt, header, "metrics.txt")
@@ -25,6 +37,8 @@ def plot(session):
     import pandas as pd
     import matplotlib.pyplot as plt
     import matplotlib.font_manager as font_manager
+    
+    common._get_collected_info("{}/global_info.txt".format(common.outdir))
 
     data = pd.read_csv("{}/metrics.txt".format(common.outdir), sep='\t')
     #replacing high value by something
@@ -116,12 +130,25 @@ def plot(session):
     # Checkpoint Age
     # Here we set the second element of the "variables" to 3, this means it's a
     # fix value
-    async_flush_point=_get_async_flush_point(session)
-    sync_flush_point=_get_sync_flush_point(session)
-    common._generate_graph("mysql_checkpoint.png", "MySQL Checkpoint Age", data, [["log_lsn_checkpoint_age",1], 
-                                                                                  [async_flush_point,3,"async flush point"],
-                                                                                  [sync_flush_point,3,"sync flush point"]
-                                                                                 ], "line")  
+    major, middle, minor = common._get_version_info(common.collectedInfo['version'])
+    if int(major) == 8 and int(minor) < 30:
+        print("Redo Log < 8.0.30 detected")
+        async_flush_point=_get_async_flush_point(session)
+        sync_flush_point=_get_sync_flush_point(session)
+        common._generate_graph("mysql_checkpoint.png", "MySQL Checkpoint Age", data, [["log_lsn_checkpoint_age",1], 
+                                                                                    [async_flush_point,3,"async flush point"],
+                                                                                    [sync_flush_point,3,"sync flush point"]
+                                                                                    ], "line")  
+    else:
+        print("New Redo Log (>=8.0.30) detected")
+        redo_log_capacity = _get_redo_log_capacity(session)
+        async_flush_point, sync_flush_point = _get_flush_points(session)
+
+        common._generate_graph("mysql_checkpoint.png", "MySQL Checkpoint Age", data, [["log_lsn_checkpoint_age",1],
+                                                                                [redo_log_capacity,3,"redo log capacity"],
+                                                                                [async_flush_point,3,"async flush point"],
+                                                                                [sync_flush_point,3,"sync flush point"],
+                                                                                ], "line" )
 
     # Transaction Log
     # This metrics is special, so I do not use the generic one as we do some computation

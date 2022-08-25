@@ -1,6 +1,8 @@
 collectList=[]
 collectMDSList=[]
+collectGlobalList=[]
 plotList=[]
+collectedInfo={}
 
 outdir=""
 from collections import *
@@ -38,6 +40,14 @@ def _run_me(session, stmt, header, file_name):
 
     f_output.close()
 
+def _get_collected_info(filename):
+   f=open(filename)
+   lines=f.readlines()
+   collectedInfo['version']=lines[1]
+
+def _get_version_info(version):
+    major, middle, minor = version.split()[0].split('.')
+    return major, middle, minor
 
 def _generate_graph(filename, title, data, variables, type='area', stacked=False):
     import pandas as pd
