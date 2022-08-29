@@ -155,12 +155,13 @@ def plot(session):
         soft_logical_capacity = round(((async_flush_point * 8/7) + (sync_flush_point * 16/15)) / 2)
         hard_logical_capacity = round(redo_log_capacity * 29.8/32)
 
-        common._generate_graph("mysql_checkpoint.png", "MySQL Checkpoint Age", data, [["log_lsn_checkpoint_age",1],
+        common._generate_graph("mysql_checkpoint.png", "MySQL Checkpoint Age", data, [
+                                                                                ["log_lsn_checkpoint_age",1],
                                                                                 [redo_log_capacity,3,"redo log capacity"],
-                                                                                [async_flush_point,3,"async flush point"],
-                                                                                [sync_flush_point,3,"sync flush point"],
-                                                                                [soft_logical_capacity,3,"soft logical capacity"],
                                                                                 [hard_logical_capacity,3,"hard logical capacity"],
+                                                                                [soft_logical_capacity,3,"soft logical capacity"],
+                                                                                [sync_flush_point,3,"sync flush point"],
+                                                                                [async_flush_point,3,"async flush point"]
                                                                                 ], "line" )
     common._generate_graph("mysql_checkpoint_lsn.png", "MySQL Checkpoint LSN Stacked (buffer / disk)", 
                            data, [["innodb_redo_log_flushed_to_disk_lsn",1],["innodb_redo_log_current_lsn",1]], "line" )
