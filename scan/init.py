@@ -1,5 +1,11 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
-import pyclamd
+try:
+  import pyclamd
+  pyclam_present = True
+except:
+  print("Python module pyClamd is not present, 'scan' plugin won't be usable.")  
+  print("Try:\n   pip install --user pyclamd")  
+  pyclam_present = False
 
 @plugin
 class scan:
@@ -15,6 +21,10 @@ def version():
     """
     Displays the version of ClamAV
     """
+    if not pyclam_present:
+        print("Python module pyClamd is not present, 'scan' plugin won't be usable.")  
+        print("Try:\n   pip install --user pyclamd")  
+        return
     try:
         cd = pyclamd.ClamdNetworkSocket()    
         cd.ping()
@@ -40,6 +50,11 @@ def table(table=None, session=None):
     """
     import mysqlsh
     shell = mysqlsh.globals.shell
+    if not pyclam_present:
+        print("Python module pyClamd is not present, 'scan' plugin won't be usable.")  
+        print("Try:\n   pip install --user pyclamd")  
+        return
+    
 
     if session is None:
         session = shell.get_session()
