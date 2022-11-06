@@ -113,6 +113,7 @@ def generate_slow_query_log(truncate=False, session=None):
 
     result = session.run_sql(query)
     content_log=""
+    cpt = 0
     row = result.fetch_one_object()
     while(row):
         if row["SQL_TEXT"]:
@@ -165,6 +166,7 @@ def generate_slow_query_log(truncate=False, session=None):
             )
             content_log = content_log + "{};\n".format(row["SQL_TEXT"])
         row = result.fetch_one_object()
+        cpt += 1
 
     if (truncate == True):
         query = "truncate table performance_schema.events_statements_history_long"
@@ -182,6 +184,10 @@ def generate_slow_query_log(truncate=False, session=None):
     file = open(file_name, "w")
     file.write(content_log)
     file.close()
-
+    if cpt > 1:
+        s_end = "ries"
+    else:
+        s_end = "y"
+    print("Slow query log with {} entr{} generated as {}".format(cpt, s_end, file_name))
     return
       
