@@ -11,3 +11,4 @@ class logs:
     """
 
 from logs import error
+from logs import slow
