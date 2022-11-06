@@ -185,7 +185,7 @@ def generate_slow_query_log(truncate=False, session=None):
     file.write(content_log)
     file.close()
     if cpt > 1:
-        s_end = "ries"
+        s_end = "ies"
     else:
         s_end = "y"
     print("Slow query log with {} entr{} generated as {}".format(cpt, s_end, file_name))
