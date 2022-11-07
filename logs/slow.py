@@ -153,12 +153,16 @@ def generate_slow_query_log(truncate=False, session=None):
                     row["SORT_MERGE_PASSES"], row["EXECUTION_ENGINE"]
                 )
             )
+            if row.has_key("MAX_TOTAL_MEMORY"):
+                max_tot_mem = row["MAX_TOTAL_MEMORY"]
+            else:
+                max_tot_mem = "n/a"
             content_log = (
                 content_log
                 + "# No_index_used: {}  Cpu_time: {}   Max_memory: {}\n".format(
                     ["no", "yes"][int(row["NO_INDEX_USED"]) > 0],
                     row["CPU_TIME"],
-                    row["MAX_TOTAL_MEMORY"],
+                    max_tot_mem,
                 )
             )
             content_log = content_log + "SET timestamp={};\n".format(
