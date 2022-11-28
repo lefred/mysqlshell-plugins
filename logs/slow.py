@@ -193,4 +193,3 @@ def generate_slow_query_log(truncate=False, session=None):
         s_end = "y"
     print("Slow query log with {} entr{} generated as {}".format(cpt, s_end, file_name))
     return
-      
