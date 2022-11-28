@@ -61,7 +61,7 @@ def is_json(s):
 
 
 @plugin_function("schema_utils.createFromCsv")
-def create_from_csv(filename=None, delimiter=',', column_name=True, first_as_pk=True, pk_auto_inc=False, limit=0):
+def create_from_csv(filename=None, delimiter=',', column_name=True, first_as_pk=True, pk_auto_inc=False, output_file=None, limit=0):
     """
     Generates SQL CREATE TABLE statement from CSV file.
 
@@ -72,13 +72,14 @@ def create_from_csv(filename=None, delimiter=',', column_name=True, first_as_pk=
         first_as_pk (bool): Use the first column as Primary Key. Default is True.
         pk_auto_inc (bool): The PK will be defined as int unsigned auto_increment. 
                             If the first_as_pk is false, a new column will be added but invisible. Default is False
+        output_file (string): File name wehere you can export the generated create statement. Default: none.
         limit (integer): Defines the limit of lines to read form the file. Default: 0, this means no limit.
     """
 
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell
-
+    f=None
     if filename is None:
         filename = shell.prompt("Enter the path and filename of the CSV file : ")
 
@@ -166,6 +167,9 @@ def create_from_csv(filename=None, delimiter=',', column_name=True, first_as_pk=
     
     table_name = Path(filename).stem.replace(" ","_")
     print("CREATE TABLE {} (".format(table_name))
+    if output_file:
+       f= open(output_file, 'w+')
+       f.write("CREATE TABLE {} (\n".format(table_name))
     j = 1
     for el in col:
         name = el['name']
@@ -179,6 +183,8 @@ def create_from_csv(filename=None, delimiter=',', column_name=True, first_as_pk=
         else:
             if not first_as_pk and j == 1 and pk_auto_inc:
                 print("   id int unsigned auto_increment invisible primary key,")
+                if output_file:
+                   f.write("   id int unsigned auto_increment invisible primary key,\n")
             pk = ""
         
         type = el['type']
@@ -216,8 +222,13 @@ def create_from_csv(filename=None, delimiter=',', column_name=True, first_as_pk=
         else:
             comma =","
         print("   `{}` {}{}{}".format(name, type, pk, comma))
+        if output_file:
+            f.write("   `{}` {}{}{}\n".format(name, type, pk, comma))
 
         j += 1
     print(");") 
+    if output_file:
+       f.write(");\n") 
+       f.close()
     return
 

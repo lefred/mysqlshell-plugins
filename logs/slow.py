@@ -115,6 +115,8 @@ def generate_slow_query_log(truncate=False, session=None):
     content_log=""
     cpt = 0
     row = result.fetch_one_object()
+
+
     while(row):
         if row["SQL_TEXT"]:
             log_time = datetime.strptime(row["start_time"], "%Y-%m-%d %H:%M:%S.%f")
@@ -167,6 +169,7 @@ def generate_slow_query_log(truncate=False, session=None):
             content_log = content_log + "{};\n".format(row["SQL_TEXT"])
         row = result.fetch_one_object()
         cpt += 1
+
 
     if (truncate == True):
         query = "truncate table performance_schema.events_statements_history_long"
