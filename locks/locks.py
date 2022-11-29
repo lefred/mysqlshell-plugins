@@ -86,6 +86,8 @@ def show_locks(limit=10, session=None):
     print(line)
     answer = shell.prompt("For which thread_id do you want to see locks ? (%s) " %  events[0]
                                , {'defaultValue': str(events[0])})
+    if not answer:
+       answer = events[0]
     if int(answer) in events:
         print("Metadata Locks:")
         print("---------------")
