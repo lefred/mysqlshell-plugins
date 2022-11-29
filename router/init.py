@@ -2,7 +2,7 @@
 # -------
 
 #from router import status as router_status
-import crypt
+import hashlib
 from router.myrouter import MyRouter
 
 from mysqlsh.plugin_manager import plugin, plugin_function
@@ -47,21 +47,12 @@ def createRestUser(restUsername=None, restUserPassword=None, session=None):
         restUserPassword (string): The optional password.
     """
 
-    use_passlib = False
     try:
-        import platform
+       from passlib.hash import sha256_crypt
     except:
-        print("Error importing module platform, try:")
-        print("mysqlsh --pym pip install --user platform") 
-        exit
-    if platform.system() == "Darwin":
-        try:
-            from passlib.hash import sha256_crypt
-            use_passlib = True
-        except:
-            print("Error importing module passlib, try:")
-            print("mysqlsh --pym pip install --user passlib") 
-            exit
+       print("Error importing module passlib, try:")
+       print("mysqlsh --pym pip install --user passlib") 
+       return
     import mysqlsh
     shell = mysqlsh.globals.shell
 
@@ -96,10 +87,7 @@ def createRestUser(restUsername=None, restUserPassword=None, session=None):
           else:
               print("Passwords do not match, try again !")
 
-    if use_passlib:
-        crypted_pwd = sha256_crypt.hash(userpassword)
-    else:
-        crypted_pwd = crypt.crypt(userpassword, crypt.mksalt(method=crypt.METHOD_SHA256))
+    crypted_pwd = sha256_crypt.hash(userpassword)
     stmt = """REPLACE INTO mysql_innodb_cluster_metadata.router_rest_accounts VALUES
               ((SELECT cluster_id FROM mysql_innodb_cluster_metadata.v2_clusters LIMIT 1), ?, "modular_crypt_format",
                  ?, NULL, NULL, NULL);"""
