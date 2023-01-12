@@ -55,9 +55,10 @@ def status(extended=False, format="table", session=None):
                            LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP 'time RL',
   LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP -
                            LAST_APPLIED_TRANSACTION_START_APPLY_TIMESTAMP 'apply time',
+  if(LAST_QUEUED_TRANSACTION = "ANONYMOUS", "N/A",
   if(GTID_SUBTRACT(LAST_QUEUED_TRANSACTION, LAST_APPLIED_TRANSACTION) = "","0" ,
       abs(time_to_sec(if(time_to_sec(APPLYING_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP)=0,0,
-      timediff(APPLYING_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP,now()))))) `lag_in_sec`
+      timediff(APPLYING_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP,now())))))) `lag_in_sec`
 FROM
   performance_schema.replication_connection_status AS conn_status
 JOIN performance_schema.replication_applier_status_by_worker AS applier_status
@@ -68,9 +69,10 @@ JOIN performance_schema.replication_applier_status_by_worker AS applier_status
   conn_status.channel_name as channel_name,
   conn_status.service_state as IO_thread,
   applier_status.service_state as SQL_thread,  
+  if(LAST_QUEUED_TRANSACTION = "ANONYMOUS", "N/A",
     if(GTID_SUBTRACT(LAST_QUEUED_TRANSACTION, LAST_APPLIED_TRANSACTION) = "","0" ,
       abs(time_to_sec(if(time_to_sec(APPLYING_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP)=0,0,
-      timediff(APPLYING_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP,now()))))) `lag_in_sec`                            
+      timediff(APPLYING_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP,now())))))) `lag_in_sec`                            
   FROM
   performance_schema.replication_connection_status AS conn_status
 JOIN performance_schema.replication_applier_status_by_worker AS applier_status
@@ -178,13 +180,15 @@ def get_gtid_to_skip(session=None):
     return
 
 @plugin_function("replication.skip_error")
-def get_gtid_to_skip(session=None):
+def get_gtid_to_skip(empty=False,session=None):
     """
     Skip the current replication error.
 
     This function skip the GTID of the current replication error.
 
     Args:
+        empty (bool): Create an empty transaction instead of adding the GTID to
+            the purged one.
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
 
@@ -206,15 +210,21 @@ def get_gtid_to_skip(session=None):
     rows = result.fetch_all()    
     if len(rows) > 0:
         for row in rows:
-            print("skiping {} for replication channel '\033[1;37m{}\033[0m'...".format(row[1], row[0]))
-            stmt = "SET GTID_NEXT='{}'".format(row[1])
-            session.run_sql(stmt)
-            stmt = "START TRANSACTION"
-            session.run_sql(stmt)
-            stmt = "COMMIT"
-            session.run_sql(stmt)
-            stmt = "SET GTID_NEXT='AUTOMATIC'"
-            session.run_sql(stmt)            
+            if empty:
+              print("skiping {} for replication channel '\033[1;37m{}\033[0m'...".format(row[1], row[0]))
+              stmt = "SET GTID_NEXT='{}'".format(row[1])
+              session.run_sql(stmt)
+              stmt = "START TRANSACTION"
+              session.run_sql(stmt)
+              stmt = "COMMIT"
+              session.run_sql(stmt)
+              stmt = "SET GTID_NEXT='AUTOMATIC'"
+              session.run_sql(stmt)            
+            else:
+              print("adding to {} GTID purged for replication channel '\033[1;37m{}\033[0m'...".format(row[1], row[0]))
+              stmt = "SET GLOBAL gtid_purged='+{}'"
+              session.run_sql(stmt)            
+
     else:
         print("No replication error to skip")        
 
