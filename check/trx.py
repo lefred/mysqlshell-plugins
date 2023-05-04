@@ -283,14 +283,16 @@ def show_trx_size_sort(limit=10,binlog=None, session=None):
        if print_binlog:
           print("Transactions in binary log %s orderer by size (limit %d):" % (row[0], limit))
           print_binlog = False
-       if row[5].startswith('BEGIN'):
+       if row[2] == 'Gtid':
+           gtid=row[5].split()[2].strip("'")
+       elif row[5].startswith('BEGIN'):
            start=row[1]
        elif row[5].startswith('COMMIT'):
-           list_binlogs.append(row[4]-start)
+           list_binlogs.append("{} {}".format(row[4]-start, gtid))
     list_binlogs.sort(reverse=True)
     del list_binlogs[limit:]
     for val in list_binlogs:
-       print("%s" % _format_bytes(val))
+       print("{} - {}".format(_format_bytes(int(val.split()[0])),val.split()[1]))
     return 
 
 @plugin_function("check.getTrxWithMostStatements")
