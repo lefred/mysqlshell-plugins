@@ -279,6 +279,7 @@ def show_trx_size_sort(limit=10,binlog=None, session=None):
     binlog_events = _returnBinlogEvents(session, binlog)
     print_binlog = True
     list_binlogs=[]
+    gtid = "n/a"
     for row in binlog_events:
        if print_binlog:
           print("Transactions in binary log %s orderer by size (limit %d):" % (row[0], limit))
