@@ -35,6 +35,8 @@ metrics_modules_matches = {
   "transaction":  "module_trx"
 }
 
+import mysqlsh
+
 try:
   import shutil
   zip_present=True
@@ -46,7 +48,8 @@ try:
   import pandas as pd
   panda_present=True
 except:
-  print("Module pandas is not present, collected data won't be parsed.")
+  mysqlsh.globals.shell.log("WARNING",
+    "Module pandas is not present, collected data won't be parsed.")
   panda_present=False
    
 if panda_present:
@@ -54,7 +57,8 @@ if panda_present:
     import matplotlib.pyplot as plt
     pyplot_present=True
   except:
-    print("Module matplotlib is not present, collected data won't be plotted.")
+    mysqlsh.globals.shell.log("WARNING",
+      "Module matplotlib is not present, collected data won't be plotted.")
     pyplot_present=False
 
 def _is_mds(session):

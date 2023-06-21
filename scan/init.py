@@ -1,10 +1,13 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
+import mysqlsh
 try:
   import pyclamd
   pyclam_present = True
 except:
-  print("Python module pyClamd is not present, 'scan' plugin won't be usable.")  
-  print("Try:\n   pip install --user pyclamd")  
+  mysqlsh.globals.shell.log("WARNING", 
+  "Python module pyClamd is not present, 'scan' plugin won't be usable.")  
+  mysqlsh.globals.shell.log("WARNING", 
+  "Try:\n   pip install --user pyclamd")  
   pyclam_present = False
 
 @plugin

@@ -2,6 +2,7 @@ import sys
 import importlib
 from importlib import util
 import json
+import mysqlsh
 requests_spec =  util.find_spec("requests")
 found_requests = requests_spec is not None
 
@@ -9,7 +10,8 @@ if found_requests:
     import requests
     requests.packages.urllib3.disable_warnings()
 else:
-    print("Error importing module 'requests', check if it's installed (Python {}.{}.{})".format(
+    mysqlsh.globals.shell.log("WARNING",
+       "Error importing module 'requests', check if it's installed (Python {}.{}.{})".format(
            sys.version_info[0], sys.version_info[1], sys.version_info[2]))
 
 import mysqlsh
