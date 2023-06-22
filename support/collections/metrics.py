@@ -1,4 +1,3 @@
-from numpy import size
 import support.collections.common as common
 common.collectList.append("metrics.collect")
 common.plotList.append("metrics.plot")
@@ -204,14 +203,26 @@ def plot(session):
     trx_log_data['sync utilization %'] = utilization
     mylegend = []
     min=trx_log_data['async utilization %'].min()
+    if pd.isna(min):
+        min=0
     max_val=trx_log_data['async utilization %'].max()
+    if pd.isna(max_val):
+        max_val=0
     mean=trx_log_data['async utilization %'].mean()
+    if pd.isna(mean):
+        mean=0
     mylegend.append("{} min={} max={} avg={}".format("async utilization %".ljust(35, " "), 
                                                           str(round(min)).ljust(20, " "), 
                                                           str(round(max_val)).ljust(20, " "), round(mean)))
     min=trx_log_data['sync utilization %'].min()
+    if pd.isna(min):
+        min=0
     max_val=trx_log_data['sync utilization %'].max()
+    if pd.isna(max_val):
+        max_val=0
     mean=trx_log_data['sync utilization %'].mean()
+    if pd.isna(mean):
+        mean=0
     mylegend.append("{} min={} max={} avg={}".format("sync utilization %".ljust(35, " "), 
                                                           str(round(min)).ljust(20, " "), 
                                                           str(round(max_val)).ljust(20, " "), round(mean)))

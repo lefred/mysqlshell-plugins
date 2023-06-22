@@ -1,4 +1,3 @@
-from numpy import size
 import support.collections.common as common
 common.collectList.append("innodb_redo.collect")
 common.plotList.append("innodb_redo.plot")
