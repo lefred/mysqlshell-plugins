@@ -41,7 +41,8 @@ try:
   import shutil
   zip_present=True
 except:
-  print("Module shutil is not present, final compression won't be available.")
+  mysqlsh.globals.shell.log("WARNING",
+    "Module shutil is not present, final compression won't be available.")
   zip_present=False
 
 try:
