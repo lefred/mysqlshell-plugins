@@ -88,11 +88,15 @@ def createRestUser(restUsername=None, restUserPassword=None, session=None):
               print("Passwords do not match, try again !")
 
     crypted_pwd = sha256_crypt.hash(userpassword)
-    stmt = """REPLACE INTO mysql_innodb_cluster_metadata.router_rest_accounts VALUES
-              ((SELECT cluster_id FROM mysql_innodb_cluster_metadata.v2_clusters LIMIT 1), ?, "modular_crypt_format",
-                 ?, NULL, NULL, NULL);"""
 
-    result = session.run_sql(stmt,[username, crypted_pwd])
+    stmt = """SELECT cluster_name, cluster_id FROM mysql_innodb_cluster_metadata.v2_clusters;"""
+    old_format = session.run_sql(stmt).fetch_all()
+    result = session.run_sql(stmt).fetch_all()
+    for cluster in result:
+        stmt = """REPLACE INTO mysql_innodb_cluster_metadata.router_rest_accounts VALUES
+              (?, ?, "modular_crypt_format",
+                 ?, NULL, NULL, NULL);"""
+        result = session.run_sql(stmt,[cluster[1], username, crypted_pwd])
     if result:
         print("You can now use '{}' to authenticate to MySQL Router's REST API.".format(username))
         print("Use myrouter=router.create(\"{}@<router IP>:8443\") to create an object to monitor.".format(username))
