@@ -144,7 +144,7 @@ def copy_users_grants(userfrom=None, userto=None, dryrun=False, ocimds=False, fo
                auth_string = auth_user[0]
                auth_string_bin = auth_user[1]
                hex_string = auth_string_bin.hex()
-               create_user = create_user.replace("AS '{}'".format(auth_string), "AS 0x{}".format(hex_string))
+               create_user = re.sub(r"AS '(.*)' ", r"AS 0x{} ".format(hex_string), create_user)
             if dryrun:
                 print("-- User `{}`@`{}`".format(user[0], user[1]))
                 print(create_user)
