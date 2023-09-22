@@ -136,7 +136,7 @@ def get_users_grants(find=None, exclude=None, ocimds=False, session=None):
             auth_string = auth_user[0]
             auth_string_bin = auth_user[1]
             hex_string = auth_string_bin.hex()
-            create_user = create_user.replace("AS '{}'".format(auth_string), "AS 0x{}".format(hex_string))
+            create_user = re.sub(r"AS '(.*)' ", r"AS 0x{} ".format(hex_string), create_user)
         if mysql_major_int < 8:
             if old_format:
                 if len(old_format) > 0 and not back_tick:
