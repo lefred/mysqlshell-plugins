@@ -135,8 +135,7 @@ def get_users_grants(find=None, exclude=None, ocimds=False, session=None):
             auth_user = session.run_sql(stmt).fetch_one()
             auth_string = auth_user[0]
             auth_string_bin = auth_user[1]
-            hex_values = [f"{b:02x}" for b in auth_string_bin]
-            hex_string = ''.join(hex_values)
+            hex_string = auth_string_bin.hex()
             create_user = create_user.replace("AS '{}'".format(auth_string), "AS 0x{}".format(hex_string))
         if mysql_major_int < 8:
             if old_format:
