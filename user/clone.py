@@ -46,7 +46,8 @@ def copy_users_grants(userfrom=None, userto=None, dryrun=False, ocimds=False, fo
     print("Info: locked users and users having expired password are not listed.")
 
     mysql_version = get_major_version(session)
-    if mysql_version == "8.0" or mysql_version == "5.7":
+    mysql_major_int = int(mysql_version.split('.')[0])
+    if mysql_major_int >= 8 or mysql_version == "5.7":
         # Get the list of users
         stmt = """SELECT DISTINCT User, Host,
                      IF(authentication_string = "","NO", "YES") HAS_PWD
@@ -86,7 +87,7 @@ def copy_users_grants(userfrom=None, userto=None, dryrun=False, ocimds=False, fo
         else:
             answer = "y"
         if answer.lower() == 'y':
-            if mysql_version == "8.0":
+            if mysql_major_int >= 8:
                 stmt = """SELECT from_user, from_host FROM mysql.role_edges WHERE to_user = ? and to_host = ?"""
                 roles = session.run_sql(stmt, [user[0], user[1]]).fetch_all()
                 if len(roles)>0:
@@ -125,7 +126,7 @@ def copy_users_grants(userfrom=None, userto=None, dryrun=False, ocimds=False, fo
                                             return
 
 
-            if mysql_version != "8.0" and mysql_version != "5.7":
+            if mysql_major_int < 8 and mysql_version != "5.7":
                stmt = """SHOW GRANTS FOR `{}`@`{}`""".format(user[0], user[1])
                create_user = session.run_sql(stmt).fetch_one()[0] + ";"
                create_user=create_user.replace(" TO '{}'@'{}'".format(user[0], user[1]),"CREATE USER {}".format(userto))
@@ -136,6 +137,14 @@ def copy_users_grants(userfrom=None, userto=None, dryrun=False, ocimds=False, fo
                #print("-- DEBUG: {}".format(create_user))
                create_user=create_user.replace("CREATE USER `{}`@`{}`".format(user[0], user[1]),"CREATE USER IF NOT EXISTS {}".format(userto))               
                #print("-- DEBUG: {}".format(create_user))
+               # we need to find the password in binary format
+               stmt = """SELECT authentication_string, convert(authentication_string using binary) authbin 
+                            FROM mysql.user where user='{}' and host='{}'""".format(user[0], user[1])
+               auth_user = session.run_sql(stmt).fetch_one()
+               auth_string = auth_user[0]
+               auth_string_bin = auth_user[1]
+               hex_string = auth_string_bin.hex()
+               create_user = create_user.replace("AS '{}'".format(auth_string), "AS 0x{}".format(hex_string))
             if dryrun:
                 print("-- User `{}`@`{}`".format(user[0], user[1]))
                 print(create_user)
