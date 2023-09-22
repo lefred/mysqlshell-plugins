@@ -128,7 +128,7 @@ def get_users_grants(find=None, exclude=None, ocimds=False, session=None):
         else:
             stmt = """SHOW CREATE USER `{}`@`{}`""".format(user[0], user[1])
             create_user = session.run_sql(stmt).fetch_one()[0] + ";"
-            create_user = create_user.replace("CREATE USER '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
+            create_user = create_user.replace("CREATE USER `{}`@`".format(user[0]),"CREATE USER IF NOT EXISTS `{}`@`".format(user[0]))
             # we need to find the password in binary format
             stmt = """SELECT authentication_string, convert(authentication_string using binary) authbin 
                         FROM mysql.user where user='{}' and host='{}'""".format(user[0], user[1])
@@ -136,7 +136,7 @@ def get_users_grants(find=None, exclude=None, ocimds=False, session=None):
             auth_string = auth_user[0]
             auth_string_bin = auth_user[1]
             hex_string = auth_string_bin.hex()
-            create_user = re.sub(r"AS '(.*)' ", r"AS 0x{} ".format(hex_string), create_user)
+            create_user = re.sub(r" AS '(.*)' ", r" AS 0x{} ".format(hex_string), create_user)
         if mysql_major_int < 8:
             if old_format:
                 if len(old_format) > 0 and not back_tick:
