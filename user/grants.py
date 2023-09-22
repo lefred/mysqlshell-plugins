@@ -38,7 +38,9 @@ def get_users_grants(find=None, exclude=None, ocimds=False, session=None):
 
     # Get the version
     mysql_version = get_major_version(session)
-    if mysql_version == "8.0":
+    mysql_major_int = int(mysql_version.split('.')[0])
+    if mysql_major_int >= 8:
+        print("-- MySQL Major Version: {}".format(mysql_version))
         # Get the list of roles
         stmt = """SELECT DISTINCT user.user AS name, user.host, IF(from_user IS NULL,0, 1) AS active
               FROM mysql.user
@@ -49,7 +51,6 @@ def get_users_grants(find=None, exclude=None, ocimds=False, session=None):
                 {} {}
             """.format(search_string, exclude_string)
         users =  session.run_sql(stmt).fetch_all()
-        print("-- INFO: due to eventual binary values in the authentication string, it's better to output the result to a file.")
         for user in users:
             print("-- Role `{}`@`{}`".format(user[0], user[1]))
             stmt = """SHOW CREATE USER `{}`@`{}`""".format(user[0], user[1])
@@ -115,7 +116,7 @@ def get_users_grants(find=None, exclude=None, ocimds=False, session=None):
     back_tick = False
     for user in users:
         print("-- User `{}`@`{}`".format(user[0], user[1]))
-        if mysql_version != "8.0" and mysql_version != "5.7":
+        if mysql_major_int < 8 and mysql_version != "5.7":
             stmt = """SHOW GRANTS FOR `{}`@`{}`""".format(user[0], user[1])
             create_user = session.run_sql(stmt).fetch_one()[0] + ";"
             if "`{}`@".format(user[0]) in create_user: 
@@ -127,8 +128,17 @@ def get_users_grants(find=None, exclude=None, ocimds=False, session=None):
         else:
             stmt = """SHOW CREATE USER `{}`@`{}`""".format(user[0], user[1])
             create_user = session.run_sql(stmt).fetch_one()[0] + ";"
-            create_user=create_user.replace("CREATE USER '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
-        if mysql_version != "8.0":
+            create_user = create_user.replace("CREATE USER '{}'@'".format(user[0]),"CREATE USER IF NOT EXISTS '{}'@'".format(user[0]))
+            # we need to find the password in binary format
+            stmt = """SELECT authentication_string, convert(authentication_string using binary) authbin 
+                        FROM mysql.user where user='{}' and host='{}'""".format(user[0], user[1])
+            auth_user = session.run_sql(stmt).fetch_one()
+            auth_string = auth_user[0]
+            auth_string_bin = auth_user[1]
+            hex_values = [f"{b:02x}" for b in auth_string_bin]
+            hex_string = ''.join(hex_values)
+            create_user = create_user.replace("AS '{}'".format(auth_string), "AS 0x{}".format(hex_string))
+        if mysql_major_int < 8:
             if old_format:
                 if len(old_format) > 0 and not back_tick:
                     # we need to find the password
