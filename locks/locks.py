@@ -6,6 +6,7 @@
 from mysqlsh.plugin_manager import plugin, plugin_function
 import struct
 
+
 @plugin_function("locks.getLocks")
 def show_locks(limit=10, session=None):
     """
@@ -30,64 +31,72 @@ def show_locks(limit=10, session=None):
                   "function or connect the shell to a database")
             return
 
+    # exists_cpu_latency filed in sys was added from mysql 8.0.28
+    exists_cpu_latency = session.run_sql("select replace(version(),'.','') >= 8028").fetch_one()
+    if exists_cpu_latency[0] == 0:
+        cpu_latency = '"null"'
+    else:
+        cpu_latency = 'format_pico_time(sum(cpu_latency))'
+
     stmt = """SELECT thr.processlist_id AS mysql_thread_id,
-              FORMAT_PICO_TIME(trx.timer_wait) AS trx_duration,
-              format_pico_time(sum(cpu_latency)) as cpu_latency,  format_bytes(sum(current_memory)) memory,
-              COUNT(case when lock_status='GRANTED' then 1 else null end) AS row_locks_held,
-              COUNT(case when lock_status='PENDING' then 1 else null end) AS row_locks_pending,
-              GROUP_CONCAT(DISTINCT CONCAT(object_schema, '.', object_name)) AS tables_with_locks,
-              sys.format_statement(current_statement) as current_statement
-              FROM performance_schema.events_transactions_current trx
-              INNER JOIN performance_schema.threads thr USING (thread_id)
-              LEFT JOIN performance_schema.data_locks USING (thread_id)
-              LEFT JOIN sys.x$processlist p on p.thd_id=thread_id
-              WHERE thr.processlist_id IS NOT NULL
-              GROUP BY thread_id, timer_wait ORDER BY TIMER_WAIT DESC
-              LIMIT %d""" % (limit)
+                      FORMAT_PICO_TIME(trx.timer_wait) AS trx_duration,
+                      %s as cpu_latency,  
+                      format_bytes(sum(current_memory)) memory,
+                      COUNT(case when lock_status='GRANTED' then 1 else null end) AS row_locks_held,
+                      COUNT(case when lock_status='PENDING' then 1 else null end) AS row_locks_pending,
+                      GROUP_CONCAT(DISTINCT CONCAT(object_schema, '.', object_name)) AS tables_with_locks,
+                      sys.format_statement(current_statement) as current_statement
+                      FROM performance_schema.events_transactions_current trx
+                      INNER JOIN performance_schema.threads thr USING (thread_id)
+                      LEFT JOIN performance_schema.data_locks USING (thread_id)
+                      LEFT JOIN sys.x$processlist p on p.thd_id=thread_id
+                      WHERE thr.processlist_id IS NOT NULL
+                      GROUP BY thread_id, timer_wait ORDER BY TIMER_WAIT DESC
+                      LIMIT %d""" % (cpu_latency, limit)
 
     result = session.run_sql(stmt)
     columns = result.get_column_names()
     rows = result.fetch_all()
-    max_length=[]
+    max_length = []
     for i in range(8):
-      if len(columns[i]) > max(len(str(x[i])) for x in rows):
-          max_length.append(len(columns[i]))
-      else:
-          max_length.append(max(len(str(x[i])) for x in rows))
+        if len(columns[i]) > max(len(str(x[i])) for x in rows):
+            max_length.append(len(columns[i]))
+        else:
+            max_length.append(max(len(str(x[i])) for x in rows))
 
-    line = "+-" + max_length[0]*"-" + "-+-" + max_length[1]*"-" + "-+-" + \
-           max_length[2]*"-" + "-+-" + max_length[3]*"-" + "-+-" + max_length[4]*"-" + \
-           "-+-" + max_length[5]*"-" + "-+-" + max_length[6]*"-" + "-+-" + max_length[7]*"-" + "-+"
-
-    print(line)
-    print("| {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} |".\
-            format(columns[0], max_length[0],\
-                columns[1], max_length[1],\
-                columns[2], max_length[2],\
-                columns[3], max_length[3],\
-                columns[4], max_length[4],\
-                columns[5], max_length[5],\
-                columns[6], max_length[6],\
-                columns[7], max_length[7]))
+    line = "+-" + max_length[0] * "-" + "-+-" + max_length[1] * "-" + "-+-" + \
+           max_length[2] * "-" + "-+-" + max_length[3] * "-" + "-+-" + max_length[4] * "-" + \
+           "-+-" + max_length[5] * "-" + "-+-" + max_length[6] * "-" + "-+-" + max_length[7] * "-" + "-+"
 
     print(line)
-    events=[]
+    print("| {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} |". \
+          format(columns[0], max_length[0], \
+                 columns[1], max_length[1], \
+                 columns[2], max_length[2], \
+                 columns[3], max_length[3], \
+                 columns[4], max_length[4], \
+                 columns[5], max_length[5], \
+                 columns[6], max_length[6], \
+                 columns[7], max_length[7]))
+
+    print(line)
+    events = []
     for row in rows:
         events.append(row[0])
-        print("| {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} |".\
-            format(row[0], max_length[0],\
-                row[1], max_length[1],\
-                str(row[2] or ' '), max_length[2],\
-                row[3], max_length[3],\
-                row[4], max_length[4],\
-                row[5], max_length[5],\
-                str(row[6] or 'NULL'), max_length[6],\
-                str(row[7] or 'NULL'), max_length[7]))
+        print("| {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} | {:{}} |". \
+              format(row[0], max_length[0], \
+                     row[1], max_length[1], \
+                     str(row[2] or ' '), max_length[2], \
+                     row[3], max_length[3], \
+                     row[4], max_length[4], \
+                     row[5], max_length[5], \
+                     str(row[6] or 'NULL'), max_length[6], \
+                     str(row[7] or 'NULL'), max_length[7]))
     print(line)
-    answer = shell.prompt("For which thread_id do you want to see locks ? (%s) " %  events[0]
-                               , {'defaultValue': str(events[0])})
+    answer = shell.prompt("For which thread_id do you want to see locks ? (%s) " % events[0]
+                          , {'defaultValue': str(events[0])})
     if not answer:
-       answer = events[0]
+        answer = events[0]
     if int(answer) in events:
         print("Metadata Locks:")
         print("---------------")
@@ -129,18 +138,18 @@ def show_locks(limit=10, session=None):
                          WHERE trx_mysql_thread_id = %s GROUP BY 1,2,3,4,5,6 ORDER BY 1,2, 3 DESC, 6""" % answer
         result = session.run_sql(stmt)
         rows = result.fetch_all()
-        prev_index=''
+        prev_index = ''
         if len(rows) > 0:
             for row in rows:
                 if row[5] is None:
                     print("{} {} ({}) LOCK ON {}.{}".format(row[4], row[2], row[3], row[0], row[1]))
                 else:
                     to_print = "{} {} ({}) LOCK ON {}.{} ({}) ".format(row[4], row[2], row[3], row[0], row[1], row[5])
-                    str_len=len(to_print)
+                    str_len = len(to_print)
                     print(to_print, end='')
                     if row[5] != prev_index:
-                        cols=[]
-                        pk_cols=[]
+                        cols = []
+                        pk_cols = []
                         stmt = """SELECT ifi.name, ifi.pos, ii.name, ifi.index_id
                                     FROM INFORMATION_SCHEMA.INNODB_TABLES it
                                     LEFT JOIN INFORMATION_SCHEMA.INNODB_INDEXES ii
@@ -150,7 +159,7 @@ def show_locks(limit=10, session=None):
                                             ON ifi.index_id = ii.index_id
                                     WHERE it.name = '{}/{}'
                                     ORDER BY ii.NAME, POS""".format(row[5], row[0], row[1])
-                        prev_index=row[5]
+                        prev_index = row[5]
                         result2 = session.run_sql(stmt)
                         rows2 = result2.fetch_all()
                         for row2 in rows2:
@@ -160,60 +169,60 @@ def show_locks(limit=10, session=None):
                                 cols.append(row2[0])
                     # if there is an index name
                     if row[5] is not None:
-                        records=row[6].split("|")
-                        next_line=False
+                        records = row[6].split("|")
+                        next_line = False
                         for record in records:
                             if next_line:
-                               print(" " * str_len, end='')
+                                print(" " * str_len, end='')
                             # display columns and values
                             columns = record.split(', ')
                             if row[5] != "PRIMARY":
-                                i=0
+                                i = 0
                                 print("(", end='')
                                 for column in columns:
                                     if len(column) == 10 and str(column).startswith("0x"):
                                         column_to_disp = int(struct.unpack('f', struct.pack('>l', int(column, 0)))[0])
                                     else:
                                         column_to_disp = column
-                                    if i < len(columns)-2:
-                                        comma_str=", "
+                                    if i < len(columns) - 2:
+                                        comma_str = ", "
                                     else:
-                                        comma_str=""
+                                        comma_str = ""
                                     if (i < len(cols)):
                                         print("{}={}{}".format(cols[i], column_to_disp, comma_str), end='')
-                                    i+=1
-                                print(") => ({}={})".format(pk_cols[0], columns[i-1]))
+                                    i += 1
+                                print(") => ({}={})".format(pk_cols[0], columns[i - 1]))
                             else:
-                                print("(",end='')
-                                i=0
+                                print("(", end='')
+                                i = 0
                                 for column in columns:
                                     if len(column) == 10 and str(column).startswith("0x"):
                                         column_to_disp = int(struct.unpack('f', struct.pack('>l', int(column, 0)))[0])
                                     else:
                                         column_to_disp = column
-                                    if i < (len(columns))-1:
-                                        comma_str=", "
+                                    if i < (len(columns)) - 1:
+                                        comma_str = ", "
                                     else:
-                                        comma_str=""
+                                        comma_str = ""
                                     if (i < len(pk_cols)):
                                         if len(columns) < len(pk_cols):
                                             print("<", end='')
-                                            j=0
+                                            j = 0
                                             for pk_el in pk_cols:
-                                                if j < (len(pk_cols))-1:
-                                                    comma_str=", "
+                                                if j < (len(pk_cols)) - 1:
+                                                    comma_str = ", "
                                                 else:
-                                                    comma_str=""
+                                                    comma_str = ""
                                                 print("{}{}".format(pk_el, comma_str), end='')
-                                                j+=1
+                                                j += 1
                                             print(">=", end="")
                                             print(column, end="")
                                         else:
                                             print("{}={}{}".format(pk_cols[i], column, comma_str), end='')
-                                    i+=1
+                                    i += 1
                                 print(")")
 
-                            next_line=True
+                            next_line = True
         else:
             print("None")
         # STAEMENTS BLOCKING US
@@ -241,7 +250,8 @@ def show_locks(limit=10, session=None):
         result = session.run_sql(stmt)
         rows = result.fetch_all()
         for row in rows:
-            print("\nBLOCKING {} ({}) LOCK ON {} FOR {} SECONDS (mysql_thread_id: {})".format(row[1], row[3], row[0], row[6], row[7]))
+            print("\nBLOCKING {} ({}) LOCK ON {} FOR {} SECONDS (mysql_thread_id: {})".format(row[1], row[3], row[0],
+                                                                                              row[6], row[7]))
             print("\nStatement we are blocking:")
             print("--------------------------")
             print("\033[33m{}\033[0m\n".format(row[2]))
