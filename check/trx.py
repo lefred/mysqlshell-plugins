@@ -3,13 +3,15 @@
 # Definition of member functions for the check extension object to display trx info
 #
 from mysqlsh.plugin_manager import plugin, plugin_function
-from mysqlsh_plugins_common import is_consumer_enabled
+
+from check.queries import _get_full_details
+from mysqlsh_plugins_common import is_consumer_enabled, run_and_show
 from mysqlsh_plugins_common import are_instruments_enabled
 
 
 def _returnBinlogEvents(session, binlog):
     stmt = "SHOW BINLOG EVENTS in '%s'" % binlog
-    result = session.run_sql(stmt) 
+    result = session.run_sql(stmt)
     events = result.fetch_all()
     if (result.get_warnings_count() > 0):
         # Bail out and print the warnings
@@ -19,9 +21,10 @@ def _returnBinlogEvents(session, binlog):
 
     return events
 
+
 def _returnBinlogName(session):
-    stmt = "SHOW BINLOG EVENTS limit 1" 
-    result = session.run_sql(stmt) 
+    stmt = "SHOW BINLOG EVENTS limit 1"
+    result = session.run_sql(stmt)
     row = result.fetch_one()
     if (result.get_warnings_count() > 0):
         # Bail out and print the warnings
@@ -31,20 +34,23 @@ def _returnBinlogName(session):
 
     return '.'.join(row[0].split('.')[:-1])
 
+
 def _returnBinlogIO(session, name):
     stmt = """select * from sys.io_global_by_file_by_bytes 
               where file COLLATE 'utf8mb4_0900_ai_ci' 
               like '%%/%s%%' COLLATE 'utf8mb4_0900_ai_ci' order by file;""" % name
-    result = session.run_sql(stmt) 
+    result = session.run_sql(stmt)
 
     return result
+
 
 def _returnBinlogTotalIO(session):
     stmt = """select * from sys.io_global_by_wait_by_bytes 
               where event_name = 'sql/binlog'"""
-    result = session.run_sql(stmt) 
+    result = session.run_sql(stmt)
 
     return result
+
 
 def _returnBinlogs(session):
     stmt = "SHOW BINARY LOGS"
@@ -61,12 +67,13 @@ def _returnBinlogs(session):
 
     return binlogs
 
+
 def _check_for_pfs_settings(shell, session):
     # check if pfs consumers are enabled
     stmt = """select name from performance_schema.setup_consumers 
               where (name like 'events_statement%' or name like 'events_transaction%') 
               and enabled = 'NO'"""
-    changes = False          
+    changes = False
     result = session.run_sql(stmt)
     consumers = result.fetch_all()
     if len(consumers) > 0:
@@ -74,8 +81,8 @@ def _check_for_pfs_settings(shell, session):
         for consumer in consumers:
             consumers_str += "%s, " % consumer[0]
 
-        answer = shell.prompt("Some consumers (%s) are not enabled, do you want to enabled them now ? (y/N) " 
-                                % consumers_str[:-2], {'defaultValue':'n'})
+        answer = shell.prompt("Some consumers (%s) are not enabled, do you want to enabled them now ? (y/N) "
+                              % consumers_str[:-2], {'defaultValue': 'n'})
         if answer.lower() == 'y':
             stmt = """update performance_schema.setup_consumers 
                       set enabled = 'yes' 
@@ -83,15 +90,15 @@ def _check_for_pfs_settings(shell, session):
                       or name like 'events_transaction%'"""
             result = session.run_sql(stmt)
             changes = True
-    
+
     # check if pfs instrument for tansaction is enabled
     stmt = """select name from performance_schema.setup_instruments 
               where name = 'transaction' and (enabled = "NO" or timed = "NO");"""
     result = session.run_sql(stmt)
     trx_instruments = result.fetch_all()
     if len(trx_instruments) > 0:
-        answer = shell.prompt("The transaction consumer is not totally enabled, do you want to enabled it now ? (y/N) " 
-                               , {'defaultValue':'n'})
+        answer = shell.prompt("The transaction consumer is not totally enabled, do you want to enabled it now ? (y/N) "
+                              , {'defaultValue': 'n'})
         if answer.lower() == 'y':
             stmt = """update performance_schema.setup_instruments 
                       set enabled = 'yes', timed = 'yes' 
@@ -100,19 +107,20 @@ def _check_for_pfs_settings(shell, session):
             changes = True
     if changes:
         print("We just made some changes, let the system run for some time to fetch the workload")
-        
+
     return changes
 
 
 def _format_bytes(size):
     # 2**10 = 1024
-    power = 2**10
+    power = 2 ** 10
     for unit in ('bytes', 'kb', 'mb', 'gb'):
-       if size <= power:
-           return "%d %s" % (size, unit)
-       size /= power
+        if size <= power:
+            return "%d %s" % (size, unit)
+        size /= power
 
     return "%d tb" % (size,)
+
 
 @plugin_function("check.getBinlogsIO")
 def show_binlogs_io(session=None):
@@ -125,7 +133,7 @@ def show_binlogs_io(session=None):
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
 
-    """    
+    """
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell
@@ -148,9 +156,9 @@ def show_binlogs_io(session=None):
     header = total_IO.get_column_names()
     rows = total_IO.fetch_all()
     for row in rows:
-        print("  %s: %s     %s: %d (%s)     %s: %d (%s) " % 
-                (header[2], row[2], header[6], row[6], row[7], header[9], row[9], row[10]))
-    return  
+        print("  %s: %s     %s: %d (%s)     %s: %d (%s) " %
+              (header[2], row[2], header[6], row[6], row[7], header[9], row[9], row[10]))
+    return
 
 
 @plugin_function("check.getBinlogs")
@@ -164,7 +172,7 @@ def show_binlogs(session=None):
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
 
-    """    
+    """
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell
@@ -177,11 +185,12 @@ def show_binlogs(session=None):
             return
     binlogs = _returnBinlogs(session)
     if binlogs:
-       print("Binary log file(s) present:")
-       for entry in binlogs:
-          print(entry[0]) 
- 
-    return  
+        print("Binary log file(s) present:")
+        for entry in binlogs:
+            print(entry[0])
+
+    return
+
 
 @plugin_function("check.showTrxSize")
 def show_trx_size(binlog=None, session=None):
@@ -195,7 +204,7 @@ def show_trx_size(binlog=None, session=None):
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
 
-    """ 
+    """
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell
@@ -210,30 +219,31 @@ def show_trx_size(binlog=None, session=None):
     binlogs = _returnBinlogs(session)
     binlog_files = []
     if binlogs:
-       for entry in binlogs:
-          binlog_files.append(entry[0]) 
+        for entry in binlogs:
+            binlog_files.append(entry[0])
 
     if binlog is None:
         binlog = binlog_files[-1]
     else:
         if binlog not in binlog_files:
-           print("%s not present on the server" % binlog)
-           return
-    
+            print("%s not present on the server" % binlog)
+            return
+
     binlog_events = _returnBinlogEvents(session, binlog)
     print_binlog = True
     for row in binlog_events:
-       if print_binlog:
-          print("Transactions in binary log %s:" % row[0])
-          print_binlog = False
-       if row[5].startswith('BEGIN'):
-           start=row[1]
-       elif row[5].startswith('COMMIT'):
-           print("%s" % _format_bytes(row[4]-start))
-    return 
+        if print_binlog:
+            print("Transactions in binary log %s:" % row[0])
+            print_binlog = False
+        if row[5].startswith('BEGIN'):
+            start = row[1]
+        elif row[5].startswith('COMMIT'):
+            print("%s" % _format_bytes(row[4] - start))
+    return
+
 
 @plugin_function("check.showTrxSizeSort")
-def show_trx_size_sort(limit=10,binlog=None, session=None):
+def show_trx_size_sort(limit=10, binlog=None, session=None):
     """
     Prints Transactions Size from a binlog and sort them by size descending.
 
@@ -260,41 +270,42 @@ def show_trx_size_sort(limit=10,binlog=None, session=None):
             return
 
     if not session.uri.startswith('mysqlx'):
-            print("The session object is not using X Protocol, please connect using mysqlx.")
-            return
+        print("The session object is not using X Protocol, please connect using mysqlx.")
+        return
 
     binlogs = _returnBinlogs(session)
     binlog_files = []
     if binlogs:
-       for entry in binlogs:
-          binlog_files.append(entry[0]) 
+        for entry in binlogs:
+            binlog_files.append(entry[0])
 
     if binlog is None:
         binlog = binlog_files[-1]
     else:
         if binlog not in binlog_files:
-           print("%s not present on the server" % binlog)
-           return
-    
+            print("%s not present on the server" % binlog)
+            return
+
     binlog_events = _returnBinlogEvents(session, binlog)
     print_binlog = True
-    list_binlogs=[]
+    list_binlogs = []
     gtid = "n/a"
     for row in binlog_events:
-       if print_binlog:
-          print("Transactions in binary log %s orderer by size (limit %d):" % (row[0], limit))
-          print_binlog = False
-       if row[2] == 'Gtid':
-           gtid=row[5].split()[2].strip("'")
-       elif row[5].startswith('BEGIN'):
-           start=row[1]
-       elif row[5].startswith('COMMIT'):
-           list_binlogs.append("{} {}".format(row[4]-start, gtid))
+        if print_binlog:
+            print("Transactions in binary log %s orderer by size (limit %d):" % (row[0], limit))
+            print_binlog = False
+        if row[2] == 'Gtid':
+            gtid = row[5].split()[2].strip("'")
+        elif row[5].startswith('BEGIN'):
+            start = row[1]
+        elif row[5].startswith('COMMIT'):
+            list_binlogs.append("{} {}".format(row[4] - start, gtid))
     list_binlogs.sort(reverse=True)
     del list_binlogs[limit:]
     for val in list_binlogs:
-       print("{} - {}".format(_format_bytes(int(val.split()[0])),val.split()[1]))
-    return 
+        print("{} - {}".format(_format_bytes(int(val.split()[0])), val.split()[1]))
+    return
+
 
 @plugin_function("check.getTrxWithMostStatements")
 def get_trx_most_stmt(limit=1, schema=None, session=None):
@@ -325,8 +336,7 @@ def get_trx_most_stmt(limit=1, schema=None, session=None):
         filter = ""
         if schema is not None:
             filter += "WHERE (object_schema = '%s' or current_schema = '%s') " % (schema, schema)
-   
-    
+
         stmt = """select t.thread_id, t.event_id, count(*) statement_count, 
                   sum(s.rows_affected) rows_affected, 
                   length(replace(group_concat(
@@ -347,8 +357,8 @@ def get_trx_most_stmt(limit=1, schema=None, session=None):
         result = session.run_sql(stmt)
         rows = result.fetch_all()
         if len(rows) == 1:
-            answer = shell.prompt("Do you want to list all statements in that transaction ? (y/N) " 
-                               , {'defaultValue':'n'})
+            answer = shell.prompt("Do you want to list all statements in that transaction ? (y/N) "
+                                  , {'defaultValue': 'n'})
             if answer.lower() == 'y':
                 stmt = """select sql_text statements 
                           from performance_schema.events_transactions_history_long t 
@@ -356,41 +366,42 @@ def get_trx_most_stmt(limit=1, schema=None, session=None):
                             on t.thread_id = s.thread_id 
                            and t.event_id = s.nesting_event_id where t.thread_id=%s
                            and t.event_id = %s
-                          """ % ( rows[0][0], rows[0][1] )
+                          """ % (rows[0][0], rows[0][1])
                 result = session.run_sql(stmt)
                 stmts = result.fetch_all()
-                i=1
+                i = 1
                 for stmt in stmts:
                     print(str(i) + ") " + stmt[0] + ";")
                     i += 1
         elif len(rows) > 1:
-            answer = shell.prompt("Do you want to list all statements in one of these transactions ? (y/N) " 
-                               , {'defaultValue':'n'})
+            answer = shell.prompt("Do you want to list all statements in one of these transactions ? (y/N) "
+                                  , {'defaultValue': 'n'})
             if answer.lower() == 'y':
-                events={}
+                events = {}
                 for row in rows:
-                    events[row[0]]=row[1]
+                    events[row[0]] = row[1]
 
-                answer = shell.prompt("Which thread_id do you want to see ? (%s) " %  list(events)[0]
-                               , {'defaultValue': str(list(events)[0])})
-                if int(answer) in events.keys():               
+                answer = shell.prompt("Which thread_id do you want to see ? (%s) " % list(events)[0]
+                                      , {'defaultValue': str(list(events)[0])})
+                if int(answer) in events.keys():
                     stmt = """select sql_text statements 
                             from performance_schema.events_transactions_history_long t 
                             join performance_schema.events_statements_history_long s         
                                 on t.thread_id = s.thread_id 
                             and t.event_id = s.nesting_event_id where t.thread_id=%s
                             and t.event_id = %s
-                            """ % (answer , events[int(answer)])
+                            """ % (answer, events[int(answer)])
                     result = session.run_sql(stmt)
                     stmts = result.fetch_all()
-                    i=1
+                    i = 1
                     for stmt in stmts:
                         print(str(i) + ") " + stmt[0] + ";")
                         i += 1
                 else:
                     print("%s is not part of the thread_id returned or is not valid!" % answer)
-        
+
     return
+
 
 @plugin_function("check.getTrxWithMostRowsAffected")
 def get_trx_most_rows(limit=1, schema=None, session=None):
@@ -405,7 +416,7 @@ def get_trx_most_rows(limit=1, schema=None, session=None):
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
 
-    """    
+    """
 
     import mysqlsh
     shell = mysqlsh.globals.shell
@@ -422,8 +433,7 @@ def get_trx_most_rows(limit=1, schema=None, session=None):
         filter = ""
         if schema is not None:
             filter += "WHERE (object_schema = '%s' or current_schema = '%s') " % (schema, schema)
-   
-    
+
         stmt = """select t.thread_id, t.event_id, count(*) statement_count, 
                     sum(s.rows_affected) rows_affected, 
                     length(replace(group_concat(
@@ -444,8 +454,8 @@ def get_trx_most_rows(limit=1, schema=None, session=None):
         result = session.run_sql(stmt)
         rows = result.fetch_all()
         if len(rows) == 1:
-            answer = shell.prompt("Do you want to list all statements in that transaction ? (y/N) " 
-                               , {'defaultValue':'n'})
+            answer = shell.prompt("Do you want to list all statements in that transaction ? (y/N) "
+                                  , {'defaultValue': 'n'})
             if answer.lower() == 'y':
                 stmt = """select sql_text statements 
                           from performance_schema.events_transactions_history_long t 
@@ -453,41 +463,42 @@ def get_trx_most_rows(limit=1, schema=None, session=None):
                             on t.thread_id = s.thread_id 
                            and t.event_id = s.nesting_event_id where t.thread_id=%s
                            and t.event_id = %s
-                          """ % ( rows[0][0], rows[0][1] )
+                          """ % (rows[0][0], rows[0][1])
                 result = session.run_sql(stmt)
                 stmts = result.fetch_all()
-                i=1
+                i = 1
                 for stmt in stmts:
                     print(str(i) + ") " + stmt[0] + ";")
                     i += 1
         elif len(rows) > 1:
-            answer = shell.prompt("Do you want to list all statements in one of these transactions ? (y/N) " 
-                               , {'defaultValue':'n'})
+            answer = shell.prompt("Do you want to list all statements in one of these transactions ? (y/N) "
+                                  , {'defaultValue': 'n'})
             if answer.lower() == 'y':
-                events={}
+                events = {}
                 for row in rows:
-                    events[row[0]]=row[1]
+                    events[row[0]] = row[1]
 
-                answer = shell.prompt("Which thread_id do you want to see ? (%s) " %  list(events)[0]
-                               , {'defaultValue': str(list(events)[0])})
-                if int(answer) in events.keys():               
+                answer = shell.prompt("Which thread_id do you want to see ? (%s) " % list(events)[0]
+                                      , {'defaultValue': str(list(events)[0])})
+                if int(answer) in events.keys():
                     stmt = """select sql_text statements 
                             from performance_schema.events_transactions_history_long t 
                             join performance_schema.events_statements_history_long s         
                                 on t.thread_id = s.thread_id 
                             and t.event_id = s.nesting_event_id where t.thread_id=%s
                             and t.event_id = %s
-                            """ % (answer , events[int(answer)])
+                            """ % (answer, events[int(answer)])
                     result = session.run_sql(stmt)
                     stmts = result.fetch_all()
-                    i=1
+                    i = 1
                     for stmt in stmts:
                         print(str(i) + ") " + stmt[0] + ";")
                         i += 1
                 else:
                     print("%s is not part of the thread_id returned or is not valid!" % answer)
-        
+
     return
+
 
 @plugin_function("check.getRunningStatements")
 def get_statements_running(limit=10, session=None):
@@ -502,7 +513,7 @@ def get_statements_running(limit=10, session=None):
         session (object): The optional session object used to query the
             database. If omitted the MySQL Shell's current session will be used.
 
-    """    
+    """
     # Get hold of the global shell object
     import mysqlsh
     shell = mysqlsh.globals.shell
@@ -515,7 +526,7 @@ def get_statements_running(limit=10, session=None):
             return
     if not are_instruments_enabled("transaction%", session, shell):
         print("Aborting, instruments are not enabled")
-        return    
+        return
     if not is_consumer_enabled("events_statements_current", session, shell):
         print("Aborting, the consumer is not enabled")
         return
@@ -540,44 +551,46 @@ def get_statements_running(limit=10, session=None):
     result = session.run_sql(stmt)
     columns = result.get_column_names()
     rows = result.fetch_all()
-    max_length=[]
-    for i in range(5): 
-      if len(columns[i]) > max(len(str(x[i])) for x in rows):
-          max_length.append(len(columns[i]))
-      else:
-          max_length.append(max(len(str(x[i])) for x in rows))
-    
-    line = "+-" + max_length[0]*"-" + "-+-" + max_length[1]*"-" + "-+-" + \
-           max_length[2]*"-" + "-+-" + max_length[3]*"-" + "-+-" + max_length[4]*"-" + "-+" 
+    max_length = []
+    for i in range(5):
+        if len(columns[i]) > max(len(str(x[i])) for x in rows):
+            max_length.append(len(columns[i]))
+        else:
+            max_length.append(max(len(str(x[i])) for x in rows))
+
+    line = "+-" + max_length[0] * "-" + "-+-" + max_length[1] * "-" + "-+-" + \
+           max_length[2] * "-" + "-+-" + max_length[3] * "-" + "-+-" + max_length[4] * "-" + "-+"
 
     print(line)
-    print("| {:{}} | {:{}} | {:{}} | {:{}} | {:{}} |".\
-            format(columns[0], max_length[0],\
-                columns[1], max_length[1],\
-                columns[2], max_length[2],\
-                columns[3], max_length[3],\
-                columns[4], max_length[4]))
+    print("| {:{}} | {:{}} | {:{}} | {:{}} | {:{}} |". \
+          format(columns[0], max_length[0], \
+                 columns[1], max_length[1], \
+                 columns[2], max_length[2], \
+                 columns[3], max_length[3], \
+                 columns[4], max_length[4]))
 
     print(line)
-    events=[]
+    events = []
     for row in rows:
         events.append(row[0])
-        print("| {:{}} | {:{}} | {:{}} | {:{}} | {:{}} |".\
-            format(row[0], max_length[0],\
-                row[1], max_length[1],\
-                str(row[2] or 'NULL'), max_length[2],\
-                str(row[3] or 'NULL'), max_length[3],\
-                str(row[4] or 'NULL'), max_length[4]))
+        print("| {:{}} | {:{}} | {:{}} | {:{}} | {:{}} |". \
+              format(row[0], max_length[0], \
+                     row[1], max_length[1], \
+                     str(row[2] or 'NULL'), max_length[2], \
+                     str(row[3] or 'NULL'), max_length[3], \
+                     str(row[4] or 'NULL'), max_length[4]))
     print(line)
     stmt = """SELECT variable_value FROM performance_schema.global_variables 
               WHERE variable_name='performance_schema_events_statements_history_size'"""
     result = session.run_sql(stmt)
     history_size = result.fetch_one()[0]
 
-    answer = shell.prompt("For which thread_id do you want to see the statements ? (%s) " %  events[0]
-                               , {'defaultValue': str(events[0])})
-    print("Info: amount of returned statements is limited by performance_schema_events_statements_history_size = {}".format(history_size))                               
-    if int(answer) in events:    
+    answer = shell.prompt("For which thread_id do you want to see the statements ? (%s) " % events[0]
+                          , {'defaultValue': str(events[0])})
+    print(
+        "Info: amount of returned statements is limited by performance_schema_events_statements_history_size = {}".format(
+            history_size))
+    if int(answer) in events:
         stmt = """SELECT SQL_TEXT FROM performance_schema.events_statements_history  
                    WHERE nesting_event_id=(
                          SELECT EVENT_ID FROM performance_schema.events_transactions_current t   
@@ -594,3 +607,67 @@ def get_statements_running(limit=10, session=None):
         else:
             print("Everything has been committed")
     return
+
+
+@plugin_function("check.getLongRunningTransactions")
+def get_long_running_transactions(seconds_wait=1, limit=10, session=None):
+    """
+    Print transacitons running longer than 1 second.
+
+    Args:
+        seconds_wait: the transaction running longer than this value will be printed(default: 1)
+        limit (integer): The optional limit of transactions to list (default: 10).
+        session (object): The optional session object used to query the
+            database. If omitted the MySQL Shell's current session will be used.
+
+    """
+    # Get hold of the global shell object
+    import mysqlsh
+    shell = mysqlsh.globals.shell
+
+    if session is None:
+        session = shell.get_session()
+        if session is None:
+            print("No session specified. Either pass a session object to this "
+                  "function or connect the shell to a database")
+            return
+    if not are_instruments_enabled("transaction%", session, shell):
+        print("Aborting, instruments are not enabled")
+        return
+    if not is_consumer_enabled("events_statements_current", session, shell):
+        print("Aborting, the consumer is not enabled")
+        return
+    if not is_consumer_enabled("events_transaction_current", session, shell):
+        print("Aborting, the consumer is not enabled")
+        return
+
+    stmt = """SELECT
+                  format_pico_time(trx.timer_wait) AS trx_runtime,
+                  trx.thread_id AS thread_id,
+                  trx.event_id AS trx_event_id,
+                  trx.isolation_level,
+                  trx.autocommit,
+                  stm.current_schema AS db,
+                  stm.sql_text AS query,
+                  stm.rows_examined AS rows_examined,
+                  stm.rows_affected AS rows_affected,
+                  stm.rows_sent AS rows_sent,
+                  IF(stm.end_event_id IS NULL, 'running', 'done') AS exec_state,
+                  format_pico_time(stm.timer_wait) AS exec_time
+                FROM
+                       performance_schema.events_transactions_current trx
+                  JOIN performance_schema.events_statements_current   stm USING (thread_id)
+                WHERE
+                      trx.state = 'ACTIVE'
+                  AND trx.timer_wait >  power(10,12) * %d
+                  order by trx.timer_wait desc
+              LIMIT %d""" % (seconds_wait, limit)
+
+    run_and_show(stmt, 'vertical')
+
+    if limit == 1:
+        result = session.run_sql(stmt)
+        row = result.fetch_one()
+        if row:
+            original_query = row[6]
+            _get_full_details(shell, session, original_query, row[0])
