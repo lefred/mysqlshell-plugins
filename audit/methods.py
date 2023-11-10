@@ -4,17 +4,17 @@ from mysqlsh_plugins_common import run_and_show
 
 def check_for_audit(session, schema, table):
     # check if there is already an audit table or column for this table
-    type_to_return=None
-    got_external_db=False
+    type_to_return = None
+    got_external_db = False
     try:
         audit_db = session.get_schema('information_audit_log')
-        got_external_db=True
+        got_external_db = True
     except:
-        got_external_db=False
+        got_external_db = False
 
-    if got_external_db:
-        try: 
-            audit_db.get_table("{}_{}".format(schema,table))
+    if not got_external_db:
+        try:
+            audit_db.get_table("{}_{}".format(schema, table))
             type_to_return = "external"
         except:
             # we should check if there is a JSON invisible column
@@ -22,11 +22,12 @@ def check_for_audit(session, schema, table):
                        WHERE table_schema='{}' and table_name='{}'
                        and column_name='audit_info' and extra='INVISIBLE'""".format(schema, table)
             result = session.run_sql(stmt)
-            rows = result.fetch_all()    
+            rows = result.fetch_all()
             if len(rows) > 0:
                 type_to_return = "internal"
 
     return type_to_return
+
 
 @plugin_function("audit.enable")
 def enable(type='external', table=None, schema=None, session=None):
@@ -56,7 +57,7 @@ def enable(type='external', table=None, schema=None, session=None):
             print("No session specified. Either pass a session object to this "
                   "function or connect the shell to a database")
             return
-    
+
     uri_json = shell.parse_uri(session.get_uri())
     if uri_json['scheme'] == "mysql":
         print("This plugin requires a MySQL X connection !")
@@ -85,7 +86,7 @@ def enable(type='external', table=None, schema=None, session=None):
         print("Audit ({}) already enabled for this table !".format(exist_type))
         return
 
-    if type == "external":        
+    if type == "external":
         try:
             audit_db = session.get_schema('information_audit_log')
         except:
@@ -93,7 +94,7 @@ def enable(type='external', table=None, schema=None, session=None):
 
         # search for audit table log called <schema>_<table>
         try:
-            audit_db.get_table("{}_{}".format(schema.name,table.name))
+            audit_db.get_table("{}_{}".format(schema.name, table.name))
             print("Audit table already exist, updating all the triggers!")
             trig_action = "updated"
         except:
@@ -102,7 +103,7 @@ def enable(type='external', table=None, schema=None, session=None):
                 timestamp timestamp default current_timestamp,
                 by_user varchar(100),
                 action varchar(6),
-                extra json)""".format(audit_db.name,schema.name, table.name)
+                extra json)""".format(audit_db.name, schema.name, table.name)
             session.run_sql(stmt)
             print("External audit table created !")
             trig_action = "created"
@@ -114,7 +115,7 @@ def enable(type='external', table=None, schema=None, session=None):
                 table_schema='{}' and table_name='{}' and 
                 (column_name <> 'audit_info' and extra <> 'INVISIBLE')""".format(schema.name, table.name)
         result = session.run_sql(stmt)
-        rows = result.fetch_all()    
+        rows = result.fetch_all()
         trigger_stmt = """drop trigger if exists {}.{}_audit_update""".format(schema.name, table.name)
         session.sql(trigger_stmt).execute()
         trigger_stmt = """
@@ -130,7 +131,7 @@ def enable(type='external', table=None, schema=None, session=None):
                 trigger_stmt = trigger_stmt + """if old.{} <> new.{} then
                 select json_merge_patch(modif, json_object('{}', json_object("old", old.{}, "new", new.{}))) into modif;
                 end if;
-                """.format(row[0],row[0],row[0],row[0],row[0])
+                """.format(row[0], row[0], row[0], row[0], row[0])
 
         trigger_stmt = trigger_stmt + """
         insert into information_audit_log.{}_{} set action="UPDATE", by_user=session_user(), extra=modif;
@@ -153,7 +154,7 @@ def enable(type='external', table=None, schema=None, session=None):
             for row in rows:
                 trigger_stmt = trigger_stmt + """
                 select json_merge_patch(modif, json_object('{}',  new.{})) into modif;
-                """.format(row[0],row[0])
+                """.format(row[0], row[0])
 
         trigger_stmt = trigger_stmt + """
             insert into information_audit_log.{}_{} set action="INSERT", by_user=session_user(), extra=modif;
@@ -176,7 +177,7 @@ def enable(type='external', table=None, schema=None, session=None):
             for row in rows:
                 trigger_stmt = trigger_stmt + """
                 select json_merge_patch(modif, json_object('{}',  old.{})) into modif;
-                """.format(row[0],row[0])
+                """.format(row[0], row[0])
 
         trigger_stmt = trigger_stmt + """
             insert into information_audit_log.{}_{} set action="DELETE", by_user=session_user(), extra=modif;
@@ -187,16 +188,16 @@ def enable(type='external', table=None, schema=None, session=None):
         session.sql(trigger_stmt).execute()
 
         print("External audit triggers {} !".format(trig_action))
-    elif type == "internal": 
+    elif type == "internal":
         if exist_type != type:
             # adding the new invisible column
             stmt = "alter table {}.{} add audit_info json invisible".format(schema.name, table.name)
             session.sql(stmt).execute()
-            print("Invisible audit_log column created.") 
+            print("Invisible audit_log column created.")
             trig_action = "created"
         else:
-            trig_action = "updated"           
-        ##########################
+            trig_action = "updated"
+            ##########################
         # creation of all triggers
         ##########################
         # get all fields of the table
@@ -204,7 +205,7 @@ def enable(type='external', table=None, schema=None, session=None):
                 table_schema='{}' and table_name='{}' and 
                 (column_name <> 'audit_info' and extra <> 'INVISIBLE')""".format(schema.name, table.name)
         result = session.run_sql(stmt)
-        rows = result.fetch_all()    
+        rows = result.fetch_all()
         trigger_stmt = """drop trigger if exists {}.{}_audit_update""".format(schema.name, table.name)
         session.sql(trigger_stmt).execute()
         trigger_stmt = """
@@ -226,7 +227,7 @@ def enable(type='external', table=None, schema=None, session=None):
                       )
                ) into modif;
                 end if;
-                """.format(row[0],row[0],row[0],row[0],row[0])
+                """.format(row[0], row[0], row[0], row[0], row[0])
 
         trigger_stmt = trigger_stmt + """
         if old.audit_info is NULL then
@@ -290,7 +291,7 @@ def enable(table=None, schema=None, session=None):
             print("No session specified. Either pass a session object to this "
                   "function or connect the shell to a database")
             return
-    
+
     uri_json = shell.parse_uri(session.get_uri())
     if uri_json['scheme'] == "mysql":
         print("This plugin requires a MySQL X connection !")
@@ -319,7 +320,6 @@ def enable(table=None, schema=None, session=None):
         print("There is no audit enabled on this table !")
         return
 
-    
     trigger_stmt = """drop trigger if exists {}.{}_audit_insert""".format(schema.name, table.name)
     session.sql(trigger_stmt).execute()
     trigger_stmt = """drop trigger if exists {}.{}_audit_update""".format(schema.name, table.name)
@@ -328,13 +328,15 @@ def enable(table=None, schema=None, session=None):
     session.sql(trigger_stmt).execute()
 
     if exist_type == "external":
-        remove = shell.prompt("Do you also want to remove the external audit table and its content ? (y/N) ", {'defaultValue': 'n'})
+        remove = shell.prompt("Do you also want to remove the external audit table and its content ? (y/N) ",
+                              {'defaultValue': 'n'})
         if remove.upper() == "Y":
             stmt = "drop table information_audit_log.{}_{}".format(schema.name, table.name)
             session.sql(stmt).execute()
             print("External audit table is now dropped.")
     else:
-        remove = shell.prompt("Do you also want to remove the invisible audit_info column ? (y/N) ", {'defaultValue': 'n'})
+        remove = shell.prompt("Do you also want to remove the invisible audit_info column ? (y/N) ",
+                              {'defaultValue': 'n'})
         if remove.upper() == "Y":
             stmt = "alter table {}.{} drop column audit_info".format(schema.name, table.name)
             session.sql(stmt).execute()
