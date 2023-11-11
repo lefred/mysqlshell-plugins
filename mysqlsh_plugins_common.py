@@ -59,6 +59,11 @@ Do you want to enabled them now ? (y/N) """
 
     return ok
 
+def get_distro(session):
+    result = session.run_sql("SELECT @@version_comment")
+    col = result.fetch_one()
+    return col[0]
+
 def get_version(session):
     result = session.run_sql("SELECT @@version")
     col = result.fetch_one()
