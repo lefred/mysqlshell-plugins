@@ -61,16 +61,27 @@ To install this demo on your machine type the following commands after you have 
 This will clone the repository and copy the files to the right path in order to be automatically loaded on MySQL Shell startup.
 
 ### macOS / Linux
-```
+```shell
 $ mkdir -p ~/.mysqlsh/plugins
 $ git clone https://github.com/lefred/mysqlshell-plugins.git ~/.mysqlsh/plugins
 ```
 
 ### Windows
-```
+```shell
 $ mkdir %AppData%\MySQL\mysqlsh\plugins
 $ git clone https://github.com/lefred/mysqlshell-plugins.git %AppData%\MySQL\mysqlsh\plugins
 ```
+
+## Dependencies
+
+```shell
+$ sudo mysqlsh --pym pip install -r requirements.txt
+```
+
+```shell
+$ mysqlsh --pym pip install --user -r requirements.txt
+```
+
 ## Missing Modules
 
 It might be possible that for some plugins, your are missing some modules. Usually it is ``python3-requests``.

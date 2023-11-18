@@ -15,3 +15,4 @@ from check import queries
 from check import schema
 from check import other
 from check import gtid
+from check import index
