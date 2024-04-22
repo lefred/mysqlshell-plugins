@@ -10,6 +10,7 @@ class demo:
     This plugin is used only for demo purpose.
     """
 
+import mysqlsh
 from demo import oracle8ball
 
 @plugin_function("demo.helloWorld")
