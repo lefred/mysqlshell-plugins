@@ -139,7 +139,7 @@ def plot(session):
     # Here we set the second element of the "variables" to 3, this means it's a
     # fix value
     major, middle, minor = common._get_version_info(common.collectedInfo['version'])
-    if int(major) == 8 and int(minor) < 30:
+    if int(major) == 8  and int(middle) == 0 and int(minor) < 30:
         print("Redo Log < 8.0.30 detected")
         async_flush_point=_get_async_flush_point(session)
         sync_flush_point=_get_sync_flush_point(session)
