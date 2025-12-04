@@ -2,13 +2,21 @@
 # -------
 from mysqlsh.plugin_manager import plugin, plugin_function
 from enum import Enum
-import os
+import os, json, sys
 
 class Operation(Enum):
     START = 1
     STOP = 2
     KILL = 3
     DELETE = 4
+
+def _get_sandbox_basedir(sandboxdir, port):
+    basedir = os.path.join(sandboxdir, str(port))
+    bindir = os.path.join(basedir, "bin")
+    mysqld = os.path.join(bindir, "mysqld")
+    if not os.path.exists(mysqld):
+        raise Exception("Sandbox at port %s was not found" % port)
+    return basedir
 
 def _get_all_sandboxes(sandboxdir):
     sandboxes = []
@@ -162,3 +170,89 @@ def deleteAll(force=False, sandboxdir=None):
         _sandbox_op(Operation.DELETE, sandbox)
 
     print("All sandboxes successfully deleted")
+
+def _component_library_name(component):
+    """
+    Returns the library filename expected for a given component name.
+    """
+    if sys.platform.startswith("linux"):
+        return component + ".so"
+    elif sys.platform == "darwin":
+        return component + ".dylib"
+    elif sys.platform == "win32":
+        return component + ".dll"
+    else:
+        raise Exception("Unsupported OS for component validation")
+
+
+def _get_plugin_dir_for_sandbox(port):
+    """
+    Connects to the sandbox instance and retrieves @@plugin_dir.
+    """
+    uri = f"mysql://root@localhost:{port}"
+    try:
+        session = shell.open_session(uri)
+    except Exception as err:
+        raise Exception(f"Cannot connect to sandbox on port {port}: {err}")
+
+    try:
+        res = session.run_sql("SELECT @@plugin_dir")
+        row = res.fetch_one()
+        if row is None:
+            raise Exception("Could not fetch @@plugin_dir")
+        return row[0]
+    finally:
+        session.close()
+
+
+def _validate_component_exists(port, component):
+    """
+    Validates that the component library exists inside @@plugin_dir.
+    """
+    print(f"Validating if component exists...")
+    plugin_dir = _get_plugin_dir_for_sandbox(port)
+    libname = _component_library_name(component)
+    fullpath = os.path.join(plugin_dir, libname)
+
+    return os.path.exists(fullpath), fullpath, plugin_dir
+
+
+@plugin_function("sandboxes.addComponentToManifest")
+def addComponentToManifest(port, component, sandboxdir=None):
+    """
+    Adds a component entry to the mysqld.my manifest of a sandbox.
+
+    Args:
+        port (int): Sandbox port
+        component (string): Component name, e.g. 'component_keyring_file'
+        sandboxdir (string): The sandboxDir used to search for existing sandboxes.
+    """
+
+    if sandboxdir is None:
+        sandboxdir = shell.options.sandboxDir
+
+    # Validate sandbox exists
+    basedir = _get_sandbox_basedir(sandboxdir, port)
+    bindir = os.path.join(basedir, "bin")
+    manifest_path = os.path.join(bindir, "mysqld.my")
+
+    # Validate component
+    exists, libpath, plugin_dir = _validate_component_exists(port, component)
+
+    if not exists:
+        print(f"ERROR: Component '{component}' not found for sandbox {port}.")
+        print(f"Expected library: {os.path.basename(libpath)}")
+        print(f"Searched in plugin_dir = {plugin_dir}")
+        print(f"Full path checked: {libpath}")
+        return
+
+    # Write manifest
+    manifest_data = { "components": f"file://{component}" }
+
+    try:
+        with open(manifest_path, "w") as f:
+            json.dump(manifest_data, f, indent=2)
+        print(f"Manifest written successfully to: {manifest_path}")
+        print(f"Component validated in plugin_dir: {plugin_dir}")
+    except Exception as err:
+        print(f"Failed to write manifest: {err}")
